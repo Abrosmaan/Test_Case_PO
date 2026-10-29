@@ -7,7 +7,11 @@
 </head>
 <body>
   <h1>Contract Checker</h1>
-  <p id="status">Проверка сервера…</p>
+  <section>
+    <input id="files" type="file" multiple accept=".txt,text/plain" />
+    <button id="upload">Загрузить</button>
+    <ul id="upload-results"></ul>
+  </section>
   <script type="module" src="./main.ts"></script>
 </body>
 </html>

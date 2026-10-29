@@ -9,6 +9,8 @@
 Нужен **Node.js ≥ 22.13** (используется встроенный `node:sqlite`). Платные аккаунты, ключи API и Docker не нужны.
 
 ```bash
+git clone https://github.com/Abrosmaan/Test_Case_PO.git
+cd Test_Case_PO
 npm install
 npm run dev          # API на 127.0.0.1:3000 + UI на http://127.0.0.1:5173
 ```

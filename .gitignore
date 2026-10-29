@@ -6,6 +6,11 @@
 
 # Original task description (kept locally)
 *.pdf
+# …but test fixtures are part of the test set
+!Test Cases/cases/*.pdf
+
+# Local Claude Code tooling (preview config)
+.claude/
 
 # Runtime
 data/

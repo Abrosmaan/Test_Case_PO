@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import type { Db } from '../db.js';
 import { llmFallback } from '../llm/fallback.js';
 import type { LlmProvider } from '../llm/providers.js';
+import { LlmQueue } from '../llm/queue.js';
 import type { Logger } from '../logger.js';
 import { extractors } from '../extractors/index.js';
 import { processBatch } from '../pipeline/process.js';
@@ -16,6 +17,11 @@ const IdParam = z.object({ id: z.coerce.number().int().positive() });
 
 export async function buildApp(logger: Logger, db: Db, llm: LlmProvider | null = null) {
   const app = Fastify({ loggerInstance: logger });
+  // The LLM works in the background; documents stored earlier (e.g. reprocessed on start) are picked up right away.
+  const llmQueue = llm ? new LlmQueue({ db, logger }, llm) : null;
+  if (llmQueue) llmQueue.schedule('startup');
+  else await llmFallback({ db, logger }, null, 'startup'); // just marks them «LLM не настроен»
+  app.addHook('onClose', async () => { await llmQueue?.idle(); });
   // An oversized file is cut at the limit (not thrown — that would fail the whole batch)
   // and then rejected by ingest with a clear message, like any other bad file.
   await app.register(multipart, {
@@ -49,10 +55,14 @@ export async function buildApp(logger: Logger, db: Db, llm: LlmProvider | null =
       files.push({ filename: part.filename, buffer: await part.toBuffer() });
     }
     const batch = processBatch(files, { db, logger });
-    // Optional: documents the rules did not recognise get an LLM suggestion (always "needs review").
-    await llmFallback({ db, logger }, llm, batch.batch_id);
-    return batch;
+    // Documents the rules did not recognise get an LLM suggestion (always "needs review") — in the background,
+    // so the response does not wait for the model. Without an LLM they are just marked at once.
+    if (llmQueue) return { ...batch, llm_pending: llmQueue.schedule(batch.batch_id) };
+    await llmFallback({ db, logger }, null, batch.batch_id);
+    return { ...batch, llm_pending: 0 };
   });
+
+  app.get('/api/llm/status', async () => ({ enabled: llmQueue !== null, ...(llmQueue?.status() ?? { pending: 0, running: false }) }));
 
   app.get('/api/contracts', async (req) => {
     const { check_date } = z.object({ check_date: IsoDate.default(config.checkDate) }).parse(req.query);

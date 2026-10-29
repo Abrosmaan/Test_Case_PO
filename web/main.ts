@@ -2,7 +2,7 @@ import type { FieldName } from '../src/extractors/types.js';
 import type { FileResult } from '../src/pipeline/types.js';
 import type { Note, Resolution, ResolvedContract, ResolvedField, SourceRef } from '../src/pipeline/resolve.js';
 
-interface DocRow { id: number; filename: string; doc_type: string; doc_no: string | null; contract_no: string | null; sign_status: string; effective_date: string | null; needs_review: number; review_reason: string | null; classified_by: string | null; llm_suggestion: string | null }
+interface DocRow { id: number; filename: string; doc_type: string; doc_no: string | null; contract_no: string | null; sign_status: string; effective_date: string | null; needs_review: number; review_reason: string | null; classified_by: string | null; llm_suggestion: string | null; llm_status: string | null }
 interface DocFull extends DocRow { text: string }
 interface TraceRow { stage: string; rule_id: string | null; message: string }
 
@@ -103,6 +103,7 @@ function renderDocuments(docs: DocRow[]) {
     <td>${esc(d.filename)}</td>
     <td>${esc(TYPE_LABEL[d.doc_type] ?? d.doc_type)}${d.doc_no && d.doc_type !== 'contract' ? ` №${esc(d.doc_no)}` : ''}
       ${d.needs_review ? `<br><span class="status needs_review">${esc(d.review_reason ?? 'требует проверки')}</span>` : ''}
+      ${d.llm_status === 'pending' ? '<br><span class="status checking"><span class="spinner"></span>LLM проверяет…</span>' : ''}
       ${d.llm_suggestion ? `<br><span class="muted">LLM: «${esc((JSON.parse(d.llm_suggestion) as { quote: string }).quote)}»</span>` : ''}</td>
     <td>${esc(d.contract_no ?? '—')}</td>
     <td>${esc(SIGN_LABEL[d.sign_status] ?? d.sign_status)}${d.effective_date ? `<br><span class="muted">в силе с ${fmt(d.effective_date)}</span>` : ''}</td>
@@ -243,7 +244,7 @@ async function uploadFiles(files: File[]) {
   try {
     const form = new FormData();
     for (const f of files) form.append('files', f, f.name);
-    const { results } = await api<{ results: FileResult[] }>('/api/upload', { method: 'POST', body: form });
+    const { results, llm_pending } = await api<{ results: FileResult[]; llm_pending: number }>('/api/upload', { method: 'POST', body: form });
     const ok = results.filter((r) => r.status === 'ok').length;
     const dup = results.filter((r) => r.status === 'duplicate').length;
     const bad = results.filter((r) => r.status === 'rejected').length;
@@ -258,8 +259,10 @@ async function uploadFiles(files: File[]) {
       : `<li class="rejected">${esc(r.filename)}: ${esc(r.reason)}</li>`).join('');
     // Details are open when something was rejected — that is what the user has to act on.
     $('upload-summary').innerHTML = `<b>Загружено ${results.length} ${plural(results.length, 'файл', 'файла', 'файлов')}:</b> ${parts.join(' · ')}
+      <span id="llm-progress"></span>
       <details ${bad ? 'open' : ''}><summary>подробно по файлам</summary><ul>${list}</ul></details>`;
     await refresh();
+    if (llm_pending > 0) void watchLlm();
   } catch (err) {
     $('upload-summary').innerHTML = `<span class="rejected">Не удалось загрузить: ${esc(String(err))}</span>`;
   } finally {
@@ -279,6 +282,33 @@ drop.addEventListener('drop', (e) => { e.preventDefault(); void uploadFiles([...
 // A file dropped outside the zone must not make the browser navigate away from the page.
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
+
+// --- Background LLM: the upload returns at once; poll until the model has looked at every waiting document.
+let watching = false;
+async function watchLlm() {
+  if (watching) return;
+  watching = true;
+  let last = -1;
+  try {
+    for (;;) {
+      const { pending } = await api<{ pending: number }>('/api/llm/status');
+      const progress = document.getElementById('llm-progress');
+      if (progress) {
+        progress.innerHTML = pending
+          ? ` · <span class="status checking"><span class="spinner"></span>LLM проверяет ${pending} ${plural(pending, 'документ', 'документа', 'документов')} — таблица обновится сама</span>`
+          : last > 0 ? ' · <span class="ok">LLM закончила проверку</span>' : '';
+      }
+      if (pending !== last) await refresh(); // a document got its suggestion
+      if (pending === 0) break;
+      last = pending;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  } catch {
+    // Server restarted or gone — the next upload or page load starts watching again.
+  } finally {
+    watching = false;
+  }
+}
 
 $('clear').addEventListener('click', async () => {
   if (!confirm('Удалить все загруженные документы?')) return;
@@ -302,6 +332,11 @@ for (let attempt = 0; ; attempt++) {
     FIELDS = cfg.fields;
     for (const f of FIELDS) FIELD_LABEL[f.field] = f.label;
     await refresh();
+    // After a server restart stored documents may still be waiting for the LLM.
+    if ((await api<{ pending: number }>('/api/llm/status')).pending > 0) {
+      $('upload-summary').innerHTML = '<span id="llm-progress"></span>';
+      void watchLlm();
+    }
     break;
   } catch (err) {
     if (attempt >= 10) { $('upload-summary').innerHTML = `<span class="rejected">Сервер недоступен: ${esc(String(err))}. Запустите npm run dev.</span>`; break; }

@@ -8,6 +8,7 @@ interface DocRow {
   id: number; filename: string; doc_type: string; doc_no: string | null; contract_no: string | null;
   sign_status: string; doc_date: string | null; signed_date: string | null; effective_date: string | null;
   needs_review: number; review_reason: string | null; classified_by: string | null; llm_suggestion: string | null;
+  llm_status: string | null;
 }
 interface FactRow {
   id: number; document_id: number; paragraph_id: number | null; field: string; kind: 'fact' | 'no_data';
@@ -80,7 +81,7 @@ const isField = (f: string): f is FieldName => extractors.some((e) => e.field ==
 function notApplicable(d: DocRow, checkDate: string): string | null {
   if (d.doc_type === 'letter') return 'письмо — предложение, не согласовано';
   if (d.doc_type === 'draft') return 'проект ДС, не подписан';
-  if (d.doc_type !== 'amendment') return `тип документа не распознан${d.review_reason ? ` (${d.review_reason})` : ''}`;
+  if (d.doc_type !== 'amendment') return `тип документа не распознан${d.review_reason ? ` (${d.review_reason})` : ''}${d.llm_status === 'pending' ? ' — LLM проверяет…' : ''}`;
   if (d.needs_review) return `требует проверки: ${d.review_reason}`;
   if (d.sign_status !== 'signed_both') return 'ДС не подписано обеими сторонами';
   if (!d.effective_date) return 'у ДС нет даты вступления в силу';
@@ -258,9 +259,11 @@ export function resolve(db: Db, checkDate: string): Resolution {
     .filter((d) => d.doc_type !== 'contract' && (!d.contract_no || !contractDocs.has(d.contract_no)))
     .map((d) => ({
       document_id: d.id, filename: d.filename, doc_type: d.doc_type, contract_no: d.contract_no,
-      reason: d.doc_type === 'unknown' || !d.contract_no
-        ? `требует проверки: ${d.review_reason ?? 'номер договора не найден'}`
-        : `договор ${d.contract_no} не загружен`,
+      reason: d.llm_status === 'pending'
+        ? `LLM проверяет документ… (${d.review_reason ?? 'номер договора не найден'})`
+        : d.doc_type === 'unknown' || !d.contract_no
+          ? `требует проверки: ${d.review_reason ?? 'номер договора не найден'}`
+          : `договор ${d.contract_no} не загружен`,
     }));
   for (const d of docs) if (d.classified_by === 'llm') unlinked.push({ document_id: d.id, filename: d.filename, doc_type: d.doc_type, contract_no: d.contract_no, reason: llmReason(d) });
   for (const d of ruled) if (d.doc_type === 'contract' && !d.contract_no) unlinked.push({ document_id: d.id, filename: d.filename, doc_type: d.doc_type, contract_no: null, reason: 'номер договора не найден' });

@@ -62,6 +62,17 @@ create table if not exists trace (
   created_at text not null default (datetime('now'))
 );
 create index if not exists trace_doc on trace(document_id);
+-- LLM answers by document text and model: survive restarts, reprocessing and «Удалить все»,
+-- so the same text is never sent to the same model twice. Network errors are not cached.
+create table if not exists llm_cache (
+  sha256 text not null,
+  model_key text not null,       -- provider/model/prompt version
+  outcome text not null,         -- ok | invalid
+  answer text,                   -- JSON for ok
+  detail text,
+  created_at text not null default (datetime('now')),
+  primary key (sha256, model_key)
+);
 `;
 
 /** Opens (or creates) the database; schema creation is idempotent. Use ':memory:' for tests/CLI. */

@@ -3,7 +3,7 @@ import { classifyWithLlm, validate } from '../src/llm/classify.js';
 import { llmFallback } from '../src/llm/fallback.js';
 import type { LlmProvider } from '../src/llm/providers.js';
 import { providerFromEnv } from '../src/llm/providers.js';
-import { processBatch } from '../src/pipeline/process.js';
+import { processBatch, reprocessAll } from '../src/pipeline/process.js';
 import { resolve } from '../src/pipeline/resolve.js';
 import { freshCtx, loadDir } from './helpers.js';
 
@@ -109,5 +109,73 @@ describe('providerFromEnv', () => {
     const p = providerFromEnv({ LLM_API_KEY: 'secret-test-key' })!;
     expect(p.name).toBe('gemini');
     expect(JSON.stringify(p)).not.toContain('secret-test-key');
+  });
+});
+
+describe('no unnecessary LLM calls', () => {
+  const docs = () => [...loadDir(), { filename: 'odd.txt', buffer: Buffer.from(UNKNOWN) }];
+  const llmRows = (ctx: ReturnType<typeof freshCtx>) =>
+    ctx.db.prepare("select doc_type, contract_no, classified_by, llm_status from documents where filename = 'odd.txt'").get();
+
+  it('reference documents are never sent to the LLM', async () => {
+    const ctx = freshCtx();
+    processBatch(loadDir(), ctx);
+    const p = fake([ok]);
+    expect(await llmFallback(ctx, p)).toBe(0);
+    expect(p.calls).toBe(0);
+  });
+
+  it('the same text is not sent again after a restart, reprocessing or «Удалить все» + re-upload', async () => {
+    const ctx = freshCtx();
+    processBatch(docs(), ctx);
+    const p = fake([ok]);
+    await llmFallback(ctx, p);
+    const first = llmRows(ctx);
+
+    reprocessAll(ctx); // what happens on every server start
+    await llmFallback(ctx, p);
+    ctx.db.exec('delete from trace; delete from facts; delete from paragraphs; delete from documents;');
+    processBatch(docs(), ctx);
+    await llmFallback(ctx, p);
+
+    expect(p.calls).toBe(1);
+    expect(llmRows(ctx)).toEqual(first);
+    expect(ctx.db.prepare("select count(*) as n from trace where rule_id = 'llm.cache_hit'").get()).toEqual({ n: 1 });
+  });
+
+  it('invalid answers: one retry only (temperature 0 repeats itself), and the verdict is cached', async () => {
+    const ctx = freshCtx();
+    processBatch(docs(), ctx);
+    const p = fake(['не JSON']);
+    await llmFallback(ctx, p);
+    expect(p.calls).toBe(2);
+    reprocessAll(ctx);
+    await llmFallback(ctx, p);
+    expect(p.calls).toBe(2);
+    expect(llmRows(ctx)).toMatchObject({ classified_by: 'rules', llm_status: 'failed' });
+  });
+
+  it('network errors are not cached: the model is tried again later', async () => {
+    const ctx = freshCtx();
+    processBatch(docs(), ctx);
+    const down = fake([new Error('ECONNREFUSED')]);
+    await llmFallback(ctx, down);
+    expect(down.calls).toBe(4); // 1 + 3 retries
+    reprocessAll(ctx);
+    const up = fake([ok]);
+    await llmFallback(ctx, up);
+    expect(up.calls).toBe(1);
+    expect(llmRows(ctx)).toMatchObject({ classified_by: 'llm', llm_status: 'ok' });
+  }, 15_000);
+
+  it('another model is asked again', async () => {
+    const ctx = freshCtx();
+    processBatch(docs(), ctx);
+    await llmFallback(ctx, fake([ok]));
+    reprocessAll(ctx);
+    const other = { ...fake([ok]), model: 'other-model' };
+    const p = fake([ok]);
+    await llmFallback(ctx, { ...other, complete: p.complete });
+    expect(p.calls).toBe(1);
   });
 });

@@ -14,6 +14,9 @@ export type LlmAnswer = z.infer<typeof LlmAnswer>;
 export interface Attempt { attempt: number; duration_ms: number; outcome: 'ok' | 'invalid' | 'error'; detail: string }
 export interface LlmResult { answer: LlmAnswer | null; attempts: Attempt[]; prompt_hash: string }
 
+/** Bump when the prompt or validation changes: cached answers of an older version are not reused. */
+export const PROMPT_VERSION = 2;
+
 const INJECTION = config.llm.injectionPatterns.map((re) => new RegExp(re, 'iu'));
 
 /** Returns the fragment that looks like an instruction to a model, or null. */
@@ -70,9 +73,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function classifyWithLlm(
   provider: LlmProvider,
   source: string,
-  opts: { timeoutMs?: number; retries?: number; backoffMs?: number } = {},
+  opts: { timeoutMs?: number; retries?: number; invalidRetries?: number; backoffMs?: number } = {},
 ): Promise<LlmResult> {
-  const { timeoutMs = config.llm.timeoutMs, retries = config.llm.retries, backoffMs = config.llm.backoffMs } = opts;
+  const { timeoutMs = config.llm.timeoutMs, retries = config.llm.retries, invalidRetries = config.llm.invalidRetries, backoffMs = config.llm.backoffMs } = opts;
   const prompt = buildPrompt(source);
   const prompt_hash = createHash('sha256').update(prompt).digest('hex').slice(0, 12);
   const attempts: Attempt[] = [];
@@ -89,6 +92,7 @@ export async function classifyWithLlm(
         return { answer: v, attempts, prompt_hash };
       }
       attempts.push({ attempt: i + 1, duration_ms: ms(), outcome: 'invalid', detail: v });
+      if (attempts.filter((a) => a.outcome === 'invalid').length > invalidRetries) break;
     } catch (err) {
       const detail = err instanceof Error && err.name === 'TimeoutError' ? `таймаут ${timeoutMs} мс` : err instanceof Error ? err.message : String(err);
       attempts.push({ attempt: i + 1, duration_ms: ms(), outcome: 'error', detail });

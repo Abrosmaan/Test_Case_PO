@@ -100,8 +100,13 @@ export const config = {
     defaultModels: { gemini: 'gemini-2.5-flash', ollama: 'qwen3:8b' },
     ollamaUrl: env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
     timeoutMs: Number(env.LLM_TIMEOUT_MS ?? 15_000),
-    /** Retries after the first attempt, with exponential backoff. */
+    /** Retries after the first attempt on network errors and timeouts, with exponential backoff. */
     retries: 3,
+    /**
+     * Retries on an invalid answer (not JSON, wrong schema, quote not in the text). With temperature 0
+     * the model tends to repeat itself, so one retry is enough — more only burns time and tokens.
+     */
+    invalidRetries: 1,
     backoffMs: 500,
     /** Only the beginning of the document is sent: title and requisites are enough to classify. */
     maxChars: 6000,

@@ -1,7 +1,6 @@
 import { config } from '../config.js';
 import { openDb } from '../db.js';
 import { createLogger } from '../logger.js';
-import { llmFallback } from '../llm/fallback.js';
 import { providerFromEnv } from '../llm/providers.js';
 import { reprocessAll } from '../pipeline/process.js';
 import { buildApp } from './app.js';
@@ -12,7 +11,6 @@ const db = openDb(config.dbFile);
 reprocessAll({ db, logger });
 const llm = providerFromEnv();
 logger.info({ stage: 'llm', provider: llm?.name ?? 'none', model: llm?.model ?? null }, llm ? 'LLM fallback on' : 'LLM fallback off (no key) — unrecognised documents go to "needs review"');
-await llmFallback({ db, logger }, llm, 'startup');
 const app = await buildApp(logger, db, llm);
 
 try {

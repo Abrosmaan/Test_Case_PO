@@ -4,14 +4,80 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Contract Checker</title>
+  <style>
+    :root { font: 14px/1.45 system-ui, -apple-system, sans-serif; color: #1d232a; background: #f6f7f9; }
+    body { margin: 0; padding: 16px 20px 40px; max-width: 1280px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    h2 { font-size: 15px; margin: 20px 0 8px; }
+    section { overflow-x: auto; background: #fff; border: 1px solid #dde1e6; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button { cursor: pointer; padding: 4px 10px; border: 1px solid #b9c0c8; border-radius: 6px; background: #fff; }
+    button:hover { background: #eef1f4; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e6e9ed; vertical-align: top; }
+    th { font-weight: 600; color: #5b6570; font-size: 12px; }
+    td.v { cursor: pointer; }
+    td.v:hover { background: #eef4ff; }
+    .muted { color: #6b7580; font-size: 12px; }
+    .status { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 10px; background: #eef1f4; color: #3c4650; }
+    .status.amended { background: #e6f0ff; color: #1a4fa0; }
+    .status.no_data { background: #f3f3f3; color: #777; }
+    .status.needs_review, .warn { background: #fff4e0; color: #8a5300; }
+    .warn { padding: 0 6px; border-radius: 10px; font-size: 11px; }
+    .rejected { color: #a3261b; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    pre.doc { white-space: pre-wrap; font: 13px/1.5 ui-monospace, Menlo, monospace; background: #fafbfc; border: 1px solid #e6e9ed; padding: 10px; border-radius: 6px; max-height: 420px; overflow: auto; }
+    mark { background: #fff1a8; padding: 0 1px; }
+    .answer { margin-top: 8px; padding: 8px 10px; background: #f0f6ff; border-radius: 6px; }
+    td button { white-space: nowrap; margin: 1px 0; }
+    ul { margin: 4px 0; padding-left: 18px; }
+  </style>
 </head>
 <body>
-  <h1>Contract Checker</h1>
+  <h1>Проверка условий договоров поставки</h1>
+
   <section>
-    <input id="files" type="file" multiple accept=".txt,text/plain" />
-    <button id="upload">Загрузить</button>
+    <div class="row">
+      <input id="files" type="file" multiple />
+      <button id="upload">Загрузить</button>
+      <span style="flex:1"></span>
+      <label>Дата проверки <input id="check-date" type="date" /></label>
+      <button id="clear" title="Удалить все загруженные документы">Очистить</button>
+    </div>
     <ul id="upload-results"></ul>
   </section>
+
+  <section>
+    <h2 style="margin-top:0">Вопросы</h2>
+    <div class="row">
+      <select id="q-contract"></select>
+      <button id="q-date">Срок поставки по договору</button>
+      <button id="q-amount">Сумма по договору</button>
+      <span style="width:16px"></span>
+      <label>Поставка раньше <input id="q-before" type="date" value="2026-04-01" /></label>
+      <button id="q-early">Найти</button>
+    </div>
+    <div id="answer"></div>
+  </section>
+
+  <div class="layout">
+    <section>
+      <h2 style="margin-top:0">Договоры на <span id="date-label"></span></h2>
+      <table>
+        <thead><tr><th>Договор</th><th>Поставщик</th><th>Сумма</th><th>Срок поставки</th><th>Статус</th></tr></thead>
+        <tbody id="contracts"></tbody>
+      </table>
+      <div id="unlinked"></div>
+      <h2>Загруженные документы</h2>
+      <table>
+        <thead><tr><th>Файл</th><th>Тип</th><th>Договор</th><th>Подписание</th><th></th></tr></thead>
+        <tbody id="documents"></tbody>
+      </table>
+    </section>
+    <section id="detail"><p class="muted">Нажмите на значение в таблице, чтобы увидеть источник и цепочку изменений.</p></section>
+  </div>
+
   <script type="module" src="./main.ts"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@ const env = process.env;
 
 export const config = {
   host: '127.0.0.1',
-  port: Number(env.PORT ?? 3000),
+  port: Number(env.API_PORT ?? 3000),
   logLevel: env.LOG_LEVEL ?? 'info',
   logFile: 'logs/app.jsonl',
   dbFile: env.DB_FILE ?? 'data/app.db',

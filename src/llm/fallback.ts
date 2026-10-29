@@ -1,7 +1,7 @@
 import type { Db } from '../db.js';
 import type { Logger } from '../logger.js';
 import { Tracer } from '../pipeline/trace.js';
-import { classifyWithLlm } from './classify.js';
+import { classifyWithLlm, findInjection } from './classify.js';
 import type { LlmProvider } from './providers.js';
 
 interface Pending { id: number; filename: string; text: string; review_reason: string | null }
@@ -24,6 +24,14 @@ export async function llmFallback(ctx: { db: Db; logger: Logger }, provider: Llm
     if (!provider) {
       tracer.record('llm', 'llm.disabled', 'LLM не настроен — документ остаётся «требует проверки»');
       db.prepare("update documents set llm_status = 'disabled' where id = ?").run(doc.id);
+      continue;
+    }
+
+    const injection = findInjection(doc.text);
+    if (injection) {
+      tracer.record('llm', 'llm.injection_suspected', `В тексте похоже на инструкции для модели — LLM не вызывалась: «${injection}»`, {}, 'warn');
+      db.prepare("update documents set llm_status = 'suspected', review_reason = ? where id = ?")
+        .run(appendReason(`в тексте найдены инструкции для модели («${injection}») — LLM не вызывалась`), doc.id);
       continue;
     }
 

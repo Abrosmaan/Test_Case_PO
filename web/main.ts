@@ -1,6 +1,6 @@
 import type { FieldName } from '../src/extractors/types.js';
 import type { FileResult } from '../src/pipeline/types.js';
-import type { Resolution, ResolvedContract, ResolvedField, SourceRef } from '../src/pipeline/resolve.js';
+import type { Note, Resolution, ResolvedContract, ResolvedField, SourceRef } from '../src/pipeline/resolve.js';
 
 interface DocRow { id: number; filename: string; doc_type: string; doc_no: string | null; contract_no: string | null; sign_status: string; effective_date: string | null; needs_review: number; review_reason: string | null; classified_by: string | null; llm_suggestion: string | null }
 interface DocFull extends DocRow { text: string }
@@ -56,15 +56,46 @@ function renderContracts(res: Resolution) {
   };
   $('contracts-head').innerHTML = `<th>Договор</th>${FIELDS.map((f) => `<th>${esc(f.label)}</th>`).join('')}<th>Статус</th>`;
   $('contracts').innerHTML = res.contracts.length
-    ? res.contracts.map((c) => `<tr>
-        <td><b>${esc(c.contract_no)}</b></td>${FIELDS.map((f) => cell(c, f.field)).join('')}
-        <td>${c.needs_review ? `<span class="status needs_review" title="${esc(c.review_reasons.join('; '))}">требует проверки</span>` : ''}
-            ${c.proposals.length ? `<span class="warn">⚠ несогласованных предложений: ${c.proposals.length}</span>` : ''}</td>
+    ? res.contracts.map((c) => `<tr class="${c.status}">
+        <td><b>${esc(c.contract_no)}</b>${c.termination ? `<br><span class="status terminated">${esc(c.status === 'terminated' ? c.termination.display : `расторгается с ${fmt(c.termination.date)}`)}</span>` : ''}</td>
+        ${FIELDS.map((f) => cell(c, f.field)).join('')}
+        <td class="v" data-contract-detail="${esc(c.contract_no)}" title="Подробнее о договоре">${contractFlags(c) || '<span class="muted">—</span>'}</td>
       </tr>`).join('')
     : `<tr><td colspan="${FIELDS.length + 2}" class="muted">Загрузите TXT-файлы договоров</td></tr>`;
   $('unlinked').innerHTML = res.unlinked.length
     ? `<h2>Не связаны с загруженным договором</h2><ul>${res.unlinked.map((u) => `<li>${esc(u.filename)} — ${esc(u.reason)}</li>`).join('')}</ul>`
     : '';
+}
+
+function contractFlags(c: ResolvedContract) {
+  return [
+    c.needs_review && `<span class="status needs_review">требует проверки</span>`,
+    c.proposals.length && `<span class="warn">⚠ предложений: ${c.proposals.length}</span>`,
+    c.notes.length && `<span class="status note">📝 заметок: ${c.notes.length}</span>`,
+  ].filter(Boolean).join('<br>');
+}
+
+const srcButton = (src: SourceRef, label = 'показать') => `<button data-src='${esc(JSON.stringify(src))}'>${label}</button>`;
+const noteLine = (n: Note) =>
+  `<li><b>${esc(n.doc_label)}</b>${n.doc_date ? ` от ${fmt(n.doc_date)}` : ''}: ${n.source.quote ? `«${esc(n.source.quote)}»` : ''}
+    <span class="muted">(${esc(n.reason)})</span> ${n.source.quote ? srcButton(n.source) : ''}</li>`;
+
+/** Everything about one contract that is not a single value: termination, review reasons, proposals, notes. */
+function contractDetail(c: ResolvedContract) {
+  const term = c.termination
+    ? `<p><span class="status terminated">${esc(c.status_label)}</span> ${srcButton(c.termination.source, 'источник')}</p>` : '';
+  const review = c.review_reasons.length || Object.values(c.fields).some((f) => f.status === 'needs_review')
+    ? `<p><b>Требует проверки:</b></p><ul>${[
+        ...c.review_reasons.map((r) => `<li>${esc(r)}</li>`),
+        ...FIELDS.filter((f) => c.fields[f.field].status === 'needs_review' && !c.review_reasons.includes(c.fields[f.field].reason ?? ''))
+          .map((f) => `<li>${esc(f.label)}: ${esc(c.fields[f.field].reason ?? '')}</li>`),
+      ].join('')}</ul>` : '';
+  const props = c.proposals.length
+    ? `<p><b>Несогласованные предложения</b> (не меняют условия):</p><ul>${c.proposals.map((p) =>
+        `<li>${esc(FIELD_LABEL[p.field])}: ${esc(p.display)} — ${esc(p.source.doc_label)} (${esc(p.reason)}) ${srcButton(p.source)}</li>`).join('')}</ul>` : '';
+  const notes = c.notes.length ? `<p><b>Заметки</b> (письма и документы без новых значений):</p><ul>${c.notes.map(noteLine).join('')}</ul>` : '';
+  openDetail(`<h2 style="margin-top:0">Договор ${esc(c.contract_no)}</h2>${term}${review}${props}${notes}
+    ${term || review || props || notes ? '' : '<p class="muted">Действует, вопросов нет.</p>'}`);
 }
 
 function renderDocuments(docs: DocRow[]) {
@@ -113,10 +144,12 @@ function fieldDetail(c: ResolvedContract, field: FieldName) {
   const props = c.proposals.filter((p) => p.field === field);
   const propHtml = props.length
     ? `<p><b>Несогласованные предложения</b> (не меняют значение):</p><ul>${props.map((p) =>
-        `<li>${esc(p.display)} — ${esc(p.source.doc_label)} (${esc(p.reason)}) <button data-src='${esc(JSON.stringify(p.source))}'>показать</button></li>`).join('')}</ul>`
+        `<li>${esc(p.display)} — ${esc(p.source.doc_label)} (${esc(p.reason)}) ${srcButton(p.source)}</li>`).join('')}</ul>`
     : '';
+  const term = c.status === 'terminated' ? `<p><span class="status terminated">${esc(c.status_label)}</span> — значение историческое, обязательств по договору нет.</p>` : '';
+  const notes = c.notes.length ? `<p><b>Заметки по договору:</b></p><ul>${c.notes.map(noteLine).join('')}</ul>` : '';
   return showSource(`${c.contract_no} · ${FIELD_LABEL[field]}: ${f.display}`, f.source,
-    `<p>${statusBadge(f)}</p>${reason}${chain}${propHtml}`);
+    `${term}<p>${statusBadge(f)}</p>${reason}${chain}${propHtml}${notes}`);
 }
 
 async function showDoc(id: number) {
@@ -142,7 +175,9 @@ function contractAnswer(field: FieldName) {
   const props = c.proposals.filter((p) => p.field === field);
   const noData = f.status === 'no_data';
   answer(`<b>${esc(FIELD_LABEL[field])} по ${esc(c.contract_no)} на ${fmt(state!.check_date)}:</b> ${esc(f.display)} ${noData ? '' : statusBadge(f)}
-    ${f.reason ? `<br><span class="muted">${noData ? 'Причина, ' : ''}${f.source ? `${esc(f.source.doc_label)}: ` : ''}«${esc(f.reason)}»</span>` : ''}
+    ${c.termination ? `<br><span class="status terminated">${esc(c.status_label)}</span>` : ''}
+    ${f.status === 'needs_review' && f.reason ? `<br><span class="muted">${esc(f.reason)}</span>` : ''}
+    ${f.reason && f.status !== 'needs_review' ? `<br><span class="muted">${noData ? 'Причина, ' : ''}${f.source ? `${esc(f.source.doc_label)}: ` : ''}«${esc(f.reason)}»</span>` : ''}
     ${f.source && !noData ? `<br><span class="muted">Источник: ${esc(f.source.doc_label)}, «${esc(f.source.quote)}»</span>` : ''}
     ${props.length ? `<br><span class="warn">Несогласованные предложения: ${props.map((p) => `${esc(p.display)} (${esc(p.source.doc_label)})`).join(', ')}</span>` : ''}`);
   void fieldDetail(c, field);
@@ -153,23 +188,30 @@ $('q-amount').addEventListener('click', () => contractAnswer('total_amount'));
 $('q-early').addEventListener('click', () => {
   if (!state) return;
   const before = $<HTMLInputElement>('q-before').value;
-  const hits = state.contracts.filter((c) => c.fields.delivery_date.value !== null && c.fields.delivery_date.value < before);
-  const unknown = state.contracts.filter((c) => c.fields.delivery_date.value === null);
+  const early = state.contracts.filter((c) => c.fields.delivery_date.value !== null && c.fields.delivery_date.value < before);
+  const hits = early.filter((c) => c.status !== 'terminated');
+  const terminated = early.filter((c) => c.status === 'terminated');
+  const unknown = state.contracts.filter((c) => c.fields.delivery_date.value === null && c.status !== 'terminated');
   answer(`<b>Поставка раньше ${fmt(before)} (на ${fmt(state.check_date)}):</b> ${hits.length ? '' : 'нет таких договоров'}
     <ul>${hits.map((c) => {
       const props = c.proposals.filter((p) => p.field === 'delivery_date');
       return `<li>${esc(c.contract_no)} — ${esc(c.fields.delivery_date.display)} ${statusBadge(c.fields.delivery_date)}
         ${props.length ? `<span class="warn">есть несогласованное изменение срока: ${props.map((p) => `${esc(p.display)} (${esc(p.source.doc_label)}, ${esc(p.reason)})`).join('; ')}</span>` : ''}</li>`;
     }).join('')}</ul>
-    ${unknown.length ? `<span class="muted">Срок неизвестен: ${unknown.map((c) => esc(c.contract_no)).join(', ')}</span>` : ''}`);
+    ${unknown.length ? `<span class="muted">Срок не определён (нет данных или требует проверки): ${unknown.map((c) => esc(c.contract_no)).join(', ')}</span><br>` : ''}
+    ${terminated.length ? `<span class="muted">Не учитываются — расторгнуты: ${terminated.map((c) => `${esc(c.contract_no)} (${esc(c.status_label)})`).join(', ')}</span>` : ''}`);
 });
 
 // --- Events
 document.body.addEventListener('click', (e) => {
   if ((e.target as HTMLElement).id === 'close-detail') return closeDetail();
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-field],[data-doc],[data-trace],[data-src]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-field],[data-doc],[data-trace],[data-src],[data-contract-detail]');
   if (!el || !state) return;
-  if (el.dataset.field) {
+  if (el.dataset.contractDetail) {
+    document.querySelectorAll('td.v.selected').forEach((x) => x.classList.remove('selected'));
+    el.classList.add('selected');
+    contractDetail(state.contracts.find((x) => x.contract_no === el.dataset.contractDetail)!);
+  } else if (el.dataset.field) {
     document.querySelectorAll('td.v.selected').forEach((x) => x.classList.remove('selected'));
     el.classList.add('selected');
     const c = state.contracts.find((x) => x.contract_no === el.dataset.contract)!;

@@ -58,7 +58,26 @@ export const config = {
       /** «изменить/перенести срок поставки (с DATE) на DATE» */
       change: String.raw`срок\p{L}*\s+поставки\s+(?:с\s+(?:DATE)\s+)?на\s+`,
       context: String.raw`постав\p{L}*`,
+      /** Any further «не позднее DATE» in a clause that already set a delivery deadline (staged delivery). */
+      extraDeadline: String.raw`не\s+позднее\s+`,
       stopWords: ['оплат', 'приемк', 'приёмк'],
+    },
+    /** «Стороны договорились расторгнуть договор (с DATE)» */
+    termination: {
+      trigger: String.raw`расторг\p{L}*\s+(?:настоящ\p{L}*\s+)?договор|договор\p{L}*\s+(?:\S+\s+){0,3}?расторгнут\p{L}*|прекра\p{L}*\s+действи\p{L}*\s+договор`,
+      date: String.raw`(?:с|со|с\s+даты)\s+`,
+    },
+    /**
+     * Amendment clauses that do not change terms. Any other numbered clause of an applied amendment
+     * that is neither «изложить в редакции» nor termination is an unrecognised change → needs review.
+     */
+    amendmentBoilerplate: String.raw`без\s+изменени|вступает\s+в\s+силу|вступа\p{L}*\s+в\s+силу|составлен\p{L}*\s+в\s+\S+\s+экземпляр|неотъемлем\p{L}*\s+част`,
+    /** Which tracked field an unrecognised amendment clause probably touches. */
+    fieldHints: {
+      total_amount: String.raw`стоимост|сумм|цен[аыу]`,
+      delivery_date: String.raw`срок\p{L}*\s+поставк|постав\p{L}*\s+(?:\S+\s+){0,3}?не\s+позднее`,
+      penalty_rate: String.raw`неустойк|пен[яиеё]`,
+      supplier: String.raw`поставщик\p{L}*\s*:|замен\p{L}*\s+поставщик`,
     },
     penaltyRate: {
       trigger: String.raw`неустойк\p{L}*|пен(?:я|и|ей)(?!\p{L})`,
@@ -84,5 +103,21 @@ export const config = {
     backoffMs: 500,
     /** Only the beginning of the document is sent: title and requisites are enough to classify. */
     maxChars: 6000,
+    /**
+     * Text that looks like instructions to a model. Such a document is never sent to the LLM:
+     * it stays «требует проверки» with this reason. Regular contracts do not contain these phrases.
+     */
+    injectionPatterns: [
+      String.raw`игнорир\p{L}*\s+(?:вс\p{L}+\s+)?(?:предыдущ|прошл|вышеуказ|прежн)\p{L}*`,
+      String.raw`забудь\s+(?:вс[её]|предыдущ\p{L}*|инструкц\p{L}*)`,
+      String.raw`(?:системн\p{L}*|новые)\s+(?:сообщени|промпт|инструкци|указани)\p{L}*`,
+      String.raw`(?:ответь|верни|выведи|отвечай)\s+(?:строго|только|ровно)?\s*(?:json|\{|«\{|"\{)`,
+      String.raw`ты\s+(?:—\s*|-\s*)?(?:ии|ассистент|модель|языков\p{L}*\s+модель|нейросеть)`,
+      String.raw`ignore\s+(?:all\s+)?(?:previous|prior|above|earlier)`,
+      String.raw`system\s*prompt|you\s+are\s+(?:an?\s+)?(?:ai|assistant|language\s+model)`,
+      String.raw`"?(?:doc_type|contract_no)"?\s*:`,
+      // Steering the classification itself: business documents never talk about how to classify them.
+      String.raw`классифицир\p{L}*|для\s+автоматическ\p{L}*\s+обработк\p{L}*`,
+    ],
   },
 } as const;

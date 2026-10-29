@@ -46,7 +46,7 @@ describe('reference table §5 on 10.03.2026', () => {
     expect(findContract(res, 'STN-101')!.fields.delivery_date.display).toBe('30.04.2026');
     expect(findContract(res, 'STN-102')!.fields.total_amount.display).toBe('840 000 ₽');
     expect(findContract(res, 'STN-103')!.fields.total_amount.status).toBe('no_data');
-    const early = deliveryBefore(res, '2026-04-01');
+    const early = deliveryBefore(res, '2026-04-01').hits;
     expect(early.map((x) => [x.contract.contract_no, x.contract.fields.delivery_date.display, x.pending.map((p) => p.display)]))
       .toEqual([['STN-102', '20.03.2026', ['27.03.2026']]]);
   });

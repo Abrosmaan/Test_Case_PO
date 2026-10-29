@@ -3,6 +3,7 @@ import type { Db } from '../db.js';
 import type { Logger } from '../logger.js';
 import { extractors } from '../extractors/index.js';
 import { buildSegments } from '../extractors/segments.js';
+import { detectTermination } from '../extractors/termination.js';
 import { classify } from './classify.js';
 import { ingest } from './ingest.js';
 import { segment } from './segment.js';
@@ -92,6 +93,13 @@ function processFile(file: UploadedFile, tracer: Tracer, { db }: Ctx): FileResul
       }
       for (const x of r.rejected) {
         tracer.record('extract', x.rule_id, `${ex.label}: отброшено ${x.candidate} — ${x.reason}`, { field: x.field, quote: x.quote });
+      }
+    }
+    // Termination is looked for in every paragraph of amendments, drafts and letters (not in replaced wording only).
+    if (cls.doc_type !== 'contract') {
+      for (const f of detectTermination(buildSegments('contract', paragraphs))) {
+        insertFact.run(documentId, f.paragraph_id, f.field, 'fact', f.value, f.display, f.quote, f.start, f.end, f.rule_id, null, null);
+        tracer.record('extract', f.rule_id, `Расторжение: ${f.display}`, { field: f.field, quote: f.quote });
       }
     }
   });

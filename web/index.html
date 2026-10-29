@@ -29,6 +29,9 @@
     .status.needs_review, .warn { background: #fff4e0; color: #8a5300; }
     .warn { padding: 0 6px; border-radius: 10px; font-size: 11px; }
     .rejected { color: #a3261b; }
+    .status.terminated { background: #fde8e6; color: #a3261b; }
+    .status.note { background: #eef6ee; color: #2f6b3a; }
+    tr.terminated td { color: #8a929a; }
     .ok { color: #1f7a3a; }
 
     /* Upload: the whole zone is a drop target and a file picker. */
@@ -125,7 +128,9 @@
         <span><span class="status amended">изменено ДС №N</span> изменено подписанным допсоглашением</span>
         <span><b>нет данных</b> — значения нет в тексте, причина — по клику</span>
         <span><span class="warn">⚠</span> есть несогласованные предложения (письма, проекты) — значение они не меняют</span>
-        <span><span class="status needs_review">требует проверки</span> документы противоречат друг другу или не распознаны</span>
+        <span><span class="status needs_review">требует проверки</span> значение неоднозначно или изменение в ДС не распознано — причина по клику</span>
+        <span><span class="status terminated">расторгнут с …</span> договор расторгнут подписанным ДС</span>
+        <span><span class="status note">📝 заметки</span> письма без новых значений — по клику на «Статус»</span>
       </div>
       <div id="unlinked"></div>
       <div class="row" style="margin-top:20px">

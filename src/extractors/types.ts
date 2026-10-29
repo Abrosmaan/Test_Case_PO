@@ -1,4 +1,6 @@
 export type FieldName = 'supplier' | 'total_amount' | 'delivery_date' | 'penalty_rate';
+/** Fields shown as table columns, plus contract-level events stored as facts. */
+export type FactField = FieldName | 'termination';
 
 /** A piece of document text the extractors look at. Offsets are absolute in the document source. */
 export interface Segment {
@@ -11,7 +13,7 @@ export interface Segment {
 }
 
 export interface Fact {
-  field: FieldName;
+  field: FactField;
   kind: 'fact';
   value: string;
   display: string;

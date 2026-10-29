@@ -21,7 +21,7 @@ create table if not exists documents (
   classified_by text,
   needs_review integer not null default 0,
   review_reason text,
-  llm_status text,               -- null | disabled | failed | ok
+  llm_status text,               -- null | disabled | failed | suspected | ok
   llm_suggestion text,           -- JSON: provider, model, doc_type, contract_no, quote
   created_at text not null default (datetime('now'))
 );

@@ -1,18 +1,19 @@
 # macOS
 .DS_Store
 
-# Local drafts — not for publishing
-Заготовки (Не публиковать в Гит)/
+# Local drafts — not for publishing (contains live keys)
+Заготовки*/
 
 # Original task description (kept locally)
 *.pdf
 
-# Common
+# Runtime
+data/
+logs/
 node_modules/
+dist/
+
+# Secrets
 .env
 .env.*
 !.env.example
-__pycache__/
-.venv/
-dist/
-build/

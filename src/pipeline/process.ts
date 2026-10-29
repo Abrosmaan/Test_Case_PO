@@ -103,6 +103,10 @@ function processFile(file: UploadedFile, tracer: Tracer, { db }: Ctx): FileResul
       }
       for (const x of r.rejected) {
         tracer.record('extract', x.rule_id, `${ex.label}: отброшено ${x.candidate} — ${x.reason}`, { field: x.field, quote: x.quote });
+        // Kept with its quote so the answer can say «252 000 ₽ — аванс, не сумма договора», not only the trace.
+        const at = res.text.indexOf(x.quote);
+        const para = paragraphs.find((p) => at >= p.start && at < p.end);
+        insertFact.run(documentId, para?.id ?? null, x.field, 'rejected', x.candidate, x.candidate, x.quote, at, at + x.quote.length, x.rule_id, null, x.reason);
       }
     }
     // Termination is looked for in every paragraph of amendments, drafts and letters (not in replaced wording only).

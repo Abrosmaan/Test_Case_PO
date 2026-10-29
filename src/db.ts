@@ -40,7 +40,7 @@ create table if not exists facts (
   document_id integer not null references documents(id) on delete cascade,
   paragraph_id integer references paragraphs(id),
   field text not null,
-  kind text not null,            -- fact | no_data
+  kind text not null,            -- fact | no_data | rejected (a trap the rules turned down, with the reason)
   value text,
   display text,
   quote text,

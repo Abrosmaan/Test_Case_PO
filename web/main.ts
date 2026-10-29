@@ -76,6 +76,10 @@ function contractFlags(c: ResolvedContract) {
 }
 
 const srcButton = (src: SourceRef, label = 'показать') => `<button data-src='${esc(JSON.stringify(src))}'>${label}</button>`;
+/** «Отброшено: 252 000 ₽ — «аванс» — не общая стоимость» — the traps the rules turned down for this value. */
+const trapsHtml = (f: ResolvedField, withButtons = true) => f.rejected.length
+  ? `<br><span class="muted">Отброшено: ${f.rejected.map((r) => `${esc(r.display)} — ${esc(r.reason)}${withButtons ? ` ${srcButton(r.source)}` : ''}`).join('; ')}</span>`
+  : '';
 const noteLine = (n: Note) =>
   `<li><b>${esc(n.doc_label)}</b>${n.doc_date ? ` от ${fmt(n.doc_date)}` : ''}: ${n.source.quote ? `«${esc(n.source.quote)}»` : ''}
     <span class="muted">(${esc(n.reason)})</span> ${n.source.quote ? srcButton(n.source) : ''}</li>`;
@@ -150,7 +154,7 @@ function fieldDetail(c: ResolvedContract, field: FieldName) {
   const term = c.status === 'terminated' ? `<p><span class="status terminated">${esc(c.status_label)}</span> — значение историческое, обязательств по договору нет.</p>` : '';
   const notes = c.notes.length ? `<p><b>Заметки по договору:</b></p><ul>${c.notes.map(noteLine).join('')}</ul>` : '';
   return showSource(`${c.contract_no} · ${FIELD_LABEL[field]}: ${f.display}`, f.source,
-    `${term}<p>${statusBadge(f)}</p>${reason}${chain}${propHtml}${notes}`);
+    `${term}<p>${statusBadge(f)}</p>${reason}${chain}${f.rejected.length ? `<p>${trapsHtml(f).replace(/^<br>/, '')}</p>` : ''}${propHtml}${notes}`);
 }
 
 async function showDoc(id: number) {
@@ -180,6 +184,7 @@ function contractAnswer(field: FieldName) {
     ${f.status === 'needs_review' && f.reason ? `<br><span class="muted">${esc(f.reason)}</span>` : ''}
     ${f.reason && f.status !== 'needs_review' ? `<br><span class="muted">${noData ? 'Причина, ' : ''}${f.source ? `${esc(f.source.doc_label)}: ` : ''}«${esc(f.reason)}»</span>` : ''}
     ${f.source && !noData ? `<br><span class="muted">Источник: ${esc(f.source.doc_label)}, «${esc(f.source.quote)}»</span>` : ''}
+    ${trapsHtml(f)}
     ${props.length ? `<br><span class="warn">Несогласованные предложения: ${props.map((p) => `${esc(p.display)} (${esc(p.source.doc_label)})`).join(', ')}</span>` : ''}`);
   void fieldDetail(c, field);
 }

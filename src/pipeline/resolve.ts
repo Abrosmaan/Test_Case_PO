@@ -11,7 +11,7 @@ interface DocRow {
   llm_status: string | null;
 }
 interface FactRow {
-  id: number; document_id: number; paragraph_id: number | null; field: string; kind: 'fact' | 'no_data';
+  id: number; document_id: number; paragraph_id: number | null; field: string; kind: 'fact' | 'no_data' | 'rejected';
   value: string | null; display: string | null; quote: string; start: number; end: number;
   rule_id: string; replaces_clause: string | null; reason: string | null;
 }
@@ -37,6 +37,8 @@ export interface ResolvedField {
   source: SourceRef | null;
   /** «было в договоре → изменено ДС №1» */
   chain: ChainStep[];
+  /** Traps in the contract the rules turned down for this field: «252 000 ₽ — аванс», «600 000 ₽ — лимит». */
+  rejected: { display: string; reason: string; source: SourceRef }[];
 }
 export interface ResolvedContract {
   contract_no: string;
@@ -123,6 +125,9 @@ export function resolve(db: Db, checkDate: string): Resolution {
     for (const { field } of extractors) {
       const base = cDocs.flatMap((d) => (byDoc.get(d.id) ?? []).filter((f) => f.field === field).map((f) => ({ f, d })));
       const values = base.filter((x) => x.f.kind === 'fact');
+      // Traps turned down by a stop word («аванс», «лимит», «срок оплаты») — shown next to the value as «не …».
+      const traps = base.filter((x) => x.f.kind === 'rejected' && x.f.rule_id.endsWith('stop_word'))
+        .map((x) => ({ display: x.f.display!, reason: x.f.reason!, source: ref(x.f, x.d) }));
       const distinct = [...new Set(values.map((x) => x.f.display!))];
       const first = values[0];
       if (first) fieldClause.set(field, clauseOf(first.f));
@@ -131,11 +136,13 @@ export function resolve(db: Db, checkDate: string): Resolution {
           value: null, display: distinct.join(' / '), status: 'needs_review', status_label: 'требует проверки',
           reason: `В договоре несколько разных значений: ${distinct.join(', ')} — например, поэтапная поставка. Какое считать, решает человек.`,
           source: ref(first!.f, first!.d), chain: values.map((x) => ({ display: x.f.display!, label: docLabel(x.d), source: ref(x.f, x.d) })),
+          rejected: traps,
         };
       } else if (first) {
         fields[field] = {
           value: first.f.value, display: first.f.display!, status: 'active', status_label: 'действует', reason: null,
           source: ref(first.f, first.d), chain: [{ display: first.f.display!, label: `${docLabel(first.d)}, п. ${clauseOf(first.f) ?? '?'}`, source: ref(first.f, first.d) }],
+          rejected: traps,
         };
       } else {
         const nd = base.find((x) => x.f.kind === 'no_data');
@@ -145,7 +152,7 @@ export function resolve(db: Db, checkDate: string): Resolution {
           value: null, display: unparsed ? 'требует проверки' : 'нет данных', status: unparsed ? 'needs_review' : 'no_data',
           status_label: unparsed ? 'требует проверки' : 'нет данных',
           reason: unparsed ? `значение в тексте не распознано: «${nd!.f.reason}»` : nd?.f.reason ?? 'значение не найдено в тексте договора',
-          source: nd ? ref(nd.f, nd.d) : null, chain: [],
+          source: nd ? ref(nd.f, nd.d) : null, chain: [], rejected: traps,
         };
       }
     }
@@ -199,6 +206,7 @@ export function resolve(db: Db, checkDate: string): Resolution {
           fields[field] = {
             value: f.value, display: f.display!, status: 'amended', status_label: label, reason: null,
             source: ref(f, d), chain: [...cur.chain, { display: f.display!, label: `${docLabel(d)} (новая редакция п. ${f.replaces_clause})`, source: ref(f, d) }],
+            rejected: cur.rejected,
           };
         }
         setBy.set(field, { d, display: distinct[0]! });

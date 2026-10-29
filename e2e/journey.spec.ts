@@ -132,12 +132,17 @@ test.describe('with reference files', () => {
     await select.selectOption('STN-102');
     await page.getByRole('button', { name: 'Сумма по договору' }).click();
     await expect(answer).toContainText('Сумма по STN-102 на 10.03.2026: 840 000 ₽');
+    await expect(answer).toContainText('Отброшено: 252 000 ₽ — «аванс» — не общая стоимость');
 
     // 3. Сумма STN-103 → нет данных
     await select.selectOption('STN-103');
     await page.getByRole('button', { name: 'Сумма по договору' }).click();
     await expect(answer).toContainText('Сумма по STN-103 на 10.03.2026: нет данных');
     await expect(answer).toContainText('Приложение № 1');
+    await expect(answer).toContainText('Отброшено: 600 000 ₽ — «лимит» — не общая стоимость');
+    // The trap's own quote opens from the answer.
+    await answer.getByRole('button', { name: 'показать' }).click();
+    await expect(page.locator('#detail mark')).toContainText('Лимит закупки по внутреннему бюджету покупателя — 600 000 рублей');
 
     // 4. Поставка раньше 01.04.2026 → только STN-102, с несогласованным переносом из письма
     await page.locator('#q-before').fill('2026-04-01');

@@ -12,7 +12,7 @@ function facts() {
     from facts f join documents d on d.id = f.document_id`).all() as unknown as FactRow[];
 }
 const values = (rows: FactRow[], file: string, field: string) =>
-  rows.filter((r) => r.filename === file && r.field === field).map((r) => (r.kind === 'fact' ? r.value : 'no_data'));
+  rows.filter((r) => r.filename === file && r.field === field && r.kind !== 'rejected').map((r) => (r.kind === 'fact' ? r.value : 'no_data'));
 
 describe('extractors on test files', () => {
   const rows = facts();

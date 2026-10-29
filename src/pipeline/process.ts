@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Db } from '../db.js';
 import type { Logger } from '../logger.js';
+import { classify } from './classify.js';
 import { ingest } from './ingest.js';
 import { segment } from './segment.js';
 import { Tracer } from './trace.js';
@@ -60,6 +61,18 @@ function processFile(file: UploadedFile, tracer: Tracer, { db }: Ctx): FileResul
   tracer.record('segment', 'segment.lines', `Абзацев: ${paragraphs.length}`, {
     clauses: paragraphs.filter((p) => p.clause_no).map((p) => p.clause_no),
   });
+
+  const cls = tracer.time('classify', () => classify(paragraphs));
+  for (const e of cls.evidence) tracer.record('classify', e.rule_id, `${e.attr}: «${e.quote}»`, { line_no: e.line_no });
+  for (const reason of cls.review_reasons) tracer.record('classify', 'classify.needs_review', reason, {}, 'warn');
+  tracer.record('classify', null, `Итог: ${cls.doc_type} ${cls.doc_no ?? ''} → договор ${cls.contract_no ?? '?'}, ${cls.sign_status}`, {
+    doc_type: cls.doc_type, contract_no: cls.contract_no, sign_status: cls.sign_status,
+    signed_date: cls.signed_date, effective_date: cls.effective_date, needs_review: cls.needs_review,
+  });
+  db.prepare(`update documents set doc_type = ?, doc_no = ?, contract_no = ?, sign_status = ?, doc_date = ?, signed_date = ?,
+      effective_date = ?, classified_by = 'rules', needs_review = ?, review_reason = ? where id = ?`)
+    .run(cls.doc_type, cls.doc_no, cls.contract_no, cls.sign_status, cls.doc_date, cls.signed_date,
+      cls.effective_date, cls.needs_review ? 1 : 0, cls.review_reasons.join('; ') || null, documentId);
 
   return { filename: file.filename, status: 'ok', document_id: documentId };
 }

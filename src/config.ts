@@ -56,6 +56,12 @@ export const config = {
       context: String.raw`постав\p{L}*`,
       stopWords: ['оплат', 'приемк', 'приёмк'],
     },
+    penaltyRate: {
+      trigger: String.raw`неустойк\p{L}*|пен(?:я|и|ей)(?!\p{L})`,
+      percent: String.raw`(\d+(?:[.,]\d+)?)\s*%`,
+      perDay: String.raw`за\s+каждый\s+(?:календарный\s+)?день`,
+      cap: String.raw`не\s+более\s+(\d+(?:[.,]\d+)?)\s*%`,
+    },
   },
 
   llm: {

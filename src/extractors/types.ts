@@ -1,4 +1,4 @@
-export type FieldName = 'supplier' | 'total_amount' | 'delivery_date';
+export type FieldName = 'supplier' | 'total_amount' | 'delivery_date' | 'penalty_rate';
 
 /** A piece of document text the extractors look at. Offsets are absolute in the document source. */
 export interface Segment {

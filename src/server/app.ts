@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import type { Db } from '../db.js';
 import type { Logger } from '../logger.js';
+import { extractors } from '../extractors/index.js';
 import { processBatch } from '../pipeline/process.js';
 import { resolve } from '../pipeline/resolve.js';
 import type { UploadedFile } from '../pipeline/types.js';
@@ -23,7 +24,7 @@ export async function buildApp(logger: Logger, db: Db) {
   });
 
   app.get('/api/health', async () => ({ ok: true }));
-  app.get('/api/config', async () => ({ check_date: config.checkDate }));
+  app.get('/api/config', async () => ({ check_date: config.checkDate, fields: extractors.map((e) => ({ field: e.field, label: e.label })) }));
 
   app.post('/api/upload', async (req) => {
     const files: UploadedFile[] = [];

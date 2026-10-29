@@ -6,7 +6,9 @@ interface DocRow { id: number; filename: string; doc_type: string; doc_no: strin
 interface DocFull extends DocRow { text: string }
 interface TraceRow { stage: string; rule_id: string | null; message: string }
 
-const FIELD_LABEL: Record<FieldName, string> = { supplier: 'Поставщик', total_amount: 'Сумма', delivery_date: 'Срок поставки' };
+/** Columns come from the extractor registry (GET /api/config): a new field needs no UI change. */
+let FIELDS: { field: FieldName; label: string }[] = [];
+const FIELD_LABEL = {} as Record<FieldName, string>;
 const TYPE_LABEL: Record<string, string> = { contract: 'договор', amendment: 'доп. соглашение', draft: 'проект ДС', letter: 'письмо', unknown: 'не распознан' };
 const SIGN_LABEL: Record<string, string> = { signed_both: 'подписан обеими сторонами', unsigned: 'не подписан', unknown: '—' };
 
@@ -46,13 +48,14 @@ function renderContracts(res: Resolution) {
     const pending = c.proposals.some((p) => p.field === field) ? ' <span class="warn" title="Есть несогласованные предложения">⚠</span>' : '';
     return `<td class="v" data-contract="${esc(c.contract_no)}" data-field="${field}">${esc(f.display)}${pending}<br>${statusBadge(f)}</td>`;
   };
+  $('contracts-head').innerHTML = `<th>Договор</th>${FIELDS.map((f) => `<th>${esc(f.label)}</th>`).join('')}<th>Статус</th>`;
   $('contracts').innerHTML = res.contracts.length
     ? res.contracts.map((c) => `<tr>
-        <td><b>${esc(c.contract_no)}</b></td>${cell(c, 'supplier')}${cell(c, 'total_amount')}${cell(c, 'delivery_date')}
+        <td><b>${esc(c.contract_no)}</b></td>${FIELDS.map((f) => cell(c, f.field)).join('')}
         <td>${c.needs_review ? `<span class="status needs_review" title="${esc(c.review_reasons.join('; '))}">требует проверки</span>` : ''}
             ${c.proposals.length ? `<span class="warn">есть несогласованные предложения: ${c.proposals.length}</span>` : ''}</td>
       </tr>`).join('')
-    : '<tr><td colspan="5" class="muted">Загрузите TXT-файлы договоров</td></tr>';
+    : `<tr><td colspan="${FIELDS.length + 2}" class="muted">Загрузите TXT-файлы договоров</td></tr>`;
   $('unlinked').innerHTML = res.unlinked.length
     ? `<h2>Не связаны с загруженным договором</h2><ul>${res.unlinked.map((u) => `<li>${esc(u.filename)} — ${esc(u.reason)}</li>`).join('')}</ul>`
     : '';
@@ -183,8 +186,10 @@ $('check-date').addEventListener('change', () => void refresh());
 // The API may still be starting when the page opens (npm run dev) — retry for a few seconds.
 for (let attempt = 0; ; attempt++) {
   try {
-    const cfg = await api<{ check_date: string }>('/api/config');
+    const cfg = await api<{ check_date: string; fields: typeof FIELDS }>('/api/config');
     $<HTMLInputElement>('check-date').value = cfg.check_date;
+    FIELDS = cfg.fields;
+    for (const f of FIELDS) FIELD_LABEL[f.field] = f.label;
     await refresh();
     break;
   } catch (err) {

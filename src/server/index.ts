@@ -1,10 +1,13 @@
 import { config } from '../config.js';
 import { openDb } from '../db.js';
 import { createLogger } from '../logger.js';
+import { reprocessAll } from '../pipeline/process.js';
 import { buildApp } from './app.js';
 
 const logger = createLogger();
 const db = openDb(config.dbFile);
+// Stored documents are re-extracted so that rule or extractor changes apply to them too.
+reprocessAll({ db, logger });
 const app = await buildApp(logger, db);
 
 try {

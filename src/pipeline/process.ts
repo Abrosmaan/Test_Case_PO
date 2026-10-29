@@ -98,3 +98,15 @@ function processFile(file: UploadedFile, tracer: Tracer, { db }: Ctx): FileResul
 
   return { filename: file.filename, status: 'ok', document_id: documentId };
 }
+
+/**
+ * Re-runs the whole pipeline over stored documents, e.g. after a new extractor was added.
+ * Same text → same result, so this is safe on every start. Document ids may change.
+ */
+export function reprocessAll(ctx: Ctx) {
+  const docs = ctx.db.prepare('select filename, text from documents order by id').all() as { filename: string; text: string }[];
+  if (docs.length === 0) return null;
+  ctx.db.exec('delete from trace; delete from facts; delete from paragraphs; delete from documents;');
+  ctx.logger.info({ documents: docs.length }, 'reprocessing stored documents');
+  return processBatch(docs.map((d) => ({ filename: d.filename, buffer: Buffer.from(d.text, 'utf-8') })), ctx);
+}

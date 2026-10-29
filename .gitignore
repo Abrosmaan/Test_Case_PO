@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Local drafts — not for publishing
+Заготовки (Не публиковать в Гит)/
+
+# Original task description (kept locally)
+*.pdf
+
+# Common
+node_modules/
+.env
+.env.*
+!.env.example
+__pycache__/
+.venv/
+dist/
+build/

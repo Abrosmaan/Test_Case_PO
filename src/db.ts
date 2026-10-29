@@ -21,6 +21,8 @@ create table if not exists documents (
   classified_by text,
   needs_review integer not null default 0,
   review_reason text,
+  llm_status text,               -- null | disabled | failed | ok
+  llm_suggestion text,           -- JSON: provider, model, doc_type, contract_no, quote
   created_at text not null default (datetime('now'))
 );
 create table if not exists paragraphs (
@@ -68,5 +70,8 @@ export function openDb(file: string): Db {
   const db = new DatabaseSync(file);
   db.exec('pragma foreign_keys = on;');
   db.exec(SCHEMA);
+  // Columns added after the first release: databases created earlier get them here.
+  const cols = new Set((db.prepare('pragma table_info(documents)').all() as { name: string }[]).map((c) => c.name));
+  for (const col of ['llm_status', 'llm_suggestion']) if (!cols.has(col)) db.exec(`alter table documents add column ${col} text`);
   return db;
 }

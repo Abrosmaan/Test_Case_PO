@@ -6,7 +6,7 @@ import { formatDate } from './text.js';
 interface DocRow {
   id: number; filename: string; doc_type: string; doc_no: string | null; contract_no: string | null;
   sign_status: string; doc_date: string | null; signed_date: string | null; effective_date: string | null;
-  needs_review: number; review_reason: string | null;
+  needs_review: number; review_reason: string | null; classified_by: string | null; llm_suggestion: string | null;
 }
 interface FactRow {
   id: number; document_id: number; paragraph_id: number | null; field: FieldName; kind: 'fact' | 'no_data';
@@ -78,7 +78,9 @@ export function resolve(db: Db, checkDate: string): Resolution {
   for (const f of facts) byDoc.set(f.document_id, [...(byDoc.get(f.document_id) ?? []), f]);
 
   const contractDocs = new Map<string, DocRow[]>();
-  for (const d of docs) if (d.doc_type === 'contract' && d.contract_no) contractDocs.set(d.contract_no, [...(contractDocs.get(d.contract_no) ?? []), d]);
+  // Only rule-classified documents take part; LLM suggestions wait for a person (see `unlinked`).
+  const ruled = docs.filter((d) => d.classified_by !== 'llm');
+  for (const d of ruled) if (d.doc_type === 'contract' && d.contract_no) contractDocs.set(d.contract_no, [...(contractDocs.get(d.contract_no) ?? []), d]);
 
   const decisions: Decision[] = [];
   const contracts: ResolvedContract[] = [];
@@ -116,7 +118,7 @@ export function resolve(db: Db, checkDate: string): Resolution {
     }
 
     // Amendments applied in order of effective date; everything else becomes a proposal.
-    const linked = docs.filter((d) => d.doc_type !== 'contract' && d.contract_no === contractNo);
+    const linked = ruled.filter((d) => d.doc_type !== 'contract' && d.contract_no === contractNo);
     const applicable: DocRow[] = [];
     const proposalsFrom: { d: DocRow; reason: string }[] = [];
     for (const d of linked) {
@@ -151,15 +153,24 @@ export function resolve(db: Db, checkDate: string): Resolution {
     contracts.push({ contract_no: contractNo, document_id: cDocs[0]!.id, fields, proposals, needs_review: review_reasons.length > 0, review_reasons });
   }
 
-  const unlinked = docs
+  const unlinked = ruled
     .filter((d) => d.doc_type !== 'contract' && (!d.contract_no || !contractDocs.has(d.contract_no)))
     .map((d) => ({
       document_id: d.id, filename: d.filename, doc_type: d.doc_type, contract_no: d.contract_no,
-      reason: d.contract_no ? `договор ${d.contract_no} не загружен` : (d.review_reason ?? 'номер договора не найден'),
+      reason: d.doc_type === 'unknown' || !d.contract_no
+        ? `требует проверки: ${d.review_reason ?? 'номер договора не найден'}`
+        : `договор ${d.contract_no} не загружен`,
     }));
-  for (const d of docs) if (d.doc_type === 'contract' && !d.contract_no) unlinked.push({ document_id: d.id, filename: d.filename, doc_type: d.doc_type, contract_no: null, reason: 'номер договора не найден' });
+  for (const d of docs) if (d.classified_by === 'llm') unlinked.push({ document_id: d.id, filename: d.filename, doc_type: d.doc_type, contract_no: d.contract_no, reason: llmReason(d) });
+  for (const d of ruled) if (d.doc_type === 'contract' && !d.contract_no) unlinked.push({ document_id: d.id, filename: d.filename, doc_type: d.doc_type, contract_no: null, reason: 'номер договора не найден' });
 
   return { check_date: checkDate, contracts, unlinked, decisions };
+}
+
+function llmReason(d: DocRow): string {
+  const s = d.llm_suggestion ? (JSON.parse(d.llm_suggestion) as { model: string; quote: string }) : null;
+  const what = `${TYPE_LABEL[d.doc_type] ?? 'Документ'}${d.contract_no ? ` к договору ${d.contract_no}` : ''}`;
+  return `требует проверки: LLM (${s?.model ?? '?'}) предполагает «${what}» по цитате «${s?.quote ?? ''}»; в таблицу не попадает до подтверждения`;
 }
 
 function clauseOf(f: FactRow, db: Db): string | null {

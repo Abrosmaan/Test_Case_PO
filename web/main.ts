@@ -2,7 +2,7 @@ import type { FieldName } from '../src/extractors/types.js';
 import type { FileResult } from '../src/pipeline/types.js';
 import type { Resolution, ResolvedContract, ResolvedField, SourceRef } from '../src/pipeline/resolve.js';
 
-interface DocRow { id: number; filename: string; doc_type: string; doc_no: string | null; contract_no: string | null; sign_status: string; effective_date: string | null; needs_review: number; review_reason: string | null }
+interface DocRow { id: number; filename: string; doc_type: string; doc_no: string | null; contract_no: string | null; sign_status: string; effective_date: string | null; needs_review: number; review_reason: string | null; classified_by: string | null; llm_suggestion: string | null }
 interface DocFull extends DocRow { text: string }
 interface TraceRow { stage: string; rule_id: string | null; message: string }
 
@@ -65,7 +65,8 @@ function renderDocuments(docs: DocRow[]) {
   $('documents').innerHTML = docs.map((d) => `<tr>
     <td>${esc(d.filename)}</td>
     <td>${esc(TYPE_LABEL[d.doc_type] ?? d.doc_type)}${d.doc_no && d.doc_type !== 'contract' ? ` №${esc(d.doc_no)}` : ''}
-      ${d.needs_review ? `<br><span class="status needs_review">${esc(d.review_reason ?? 'требует проверки')}</span>` : ''}</td>
+      ${d.needs_review ? `<br><span class="status needs_review">${esc(d.review_reason ?? 'требует проверки')}</span>` : ''}
+      ${d.llm_suggestion ? `<br><span class="muted">LLM: «${esc((JSON.parse(d.llm_suggestion) as { quote: string }).quote)}»</span>` : ''}</td>
     <td>${esc(d.contract_no ?? '—')}</td>
     <td>${esc(SIGN_LABEL[d.sign_status] ?? d.sign_status)}${d.effective_date ? `<br><span class="muted">в силе с ${fmt(d.effective_date)}</span>` : ''}</td>
     <td><button data-doc="${d.id}">Открыть</button> <button data-trace="${d.id}">Трасса</button></td>
@@ -186,7 +187,8 @@ $('check-date').addEventListener('change', () => void refresh());
 // The API may still be starting when the page opens (npm run dev) — retry for a few seconds.
 for (let attempt = 0; ; attempt++) {
   try {
-    const cfg = await api<{ check_date: string; fields: typeof FIELDS }>('/api/config');
+    const cfg = await api<{ check_date: string; llm: string | null; fields: typeof FIELDS }>('/api/config');
+    $('llm-status').textContent = cfg.llm ? `LLM-фоллбэк: ${cfg.llm}` : 'LLM-фоллбэк выключен (нет ключа)';
     $<HTMLInputElement>('check-date').value = cfg.check_date;
     FIELDS = cfg.fields;
     for (const f of FIELDS) FIELD_LABEL[f.field] = f.label;

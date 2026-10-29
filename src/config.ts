@@ -64,10 +64,21 @@ export const config = {
     },
   },
 
+  /**
+   * Optional LLM fallback: classification of documents the rules could not recognise.
+   * provider: 'auto' = Gemini if LLM_API_KEY is set, else off; 'gemini' | 'ollama' | 'none'.
+   * The key itself is read only inside src/llm/providers.ts and never logged.
+   */
   llm: {
-    provider: env.LLM_PROVIDER ?? 'none',
+    provider: env.LLM_PROVIDER ?? 'auto',
     model: env.LLM_MODEL ?? '',
-    timeoutMs: 10_000,
+    defaultModels: { gemini: 'gemini-2.5-flash', ollama: 'llama3.2' },
+    ollamaUrl: env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
+    timeoutMs: Number(env.LLM_TIMEOUT_MS ?? 15_000),
+    /** Retries after the first attempt, with exponential backoff. */
     retries: 3,
+    backoffMs: 500,
+    /** Only the beginning of the document is sent: title and requisites are enough to classify. */
+    maxChars: 6000,
   },
 } as const;

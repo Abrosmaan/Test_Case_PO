@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { config } from '../config.js';
 import { openDb } from '../db.js';
 import { silentLogger } from '../logger.js';
+import { llmFallback } from '../llm/fallback.js';
+import { providerFromEnv } from '../llm/providers.js';
 import { processBatch } from '../pipeline/process.js';
 import { resolve } from '../pipeline/resolve.js';
 
@@ -20,7 +22,8 @@ if (!dir) {
 const files = readdirSync(dir).filter((f) => statSync(join(dir, f)).isFile()).sort()
   .map((filename) => ({ filename, buffer: readFileSync(join(dir, filename)) }));
 const db = openDb(':memory:');
-const { results } = processBatch(files, { db, logger: silentLogger });
+const { results, batch_id } = processBatch(files, { db, logger: silentLogger });
+await llmFallback({ db, logger: silentLogger }, providerFromEnv(), batch_id);
 
 console.log(`\n== Файлы (${results.length})`);
 for (const r of results) console.log(`  ${r.status.padEnd(9)} ${r.filename}${r.status === 'rejected' ? ` — ${r.reason}` : r.status === 'duplicate' ? ` = ${r.duplicate_of}` : ''}`);

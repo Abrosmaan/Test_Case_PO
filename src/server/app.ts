@@ -3,6 +3,8 @@ import Fastify from 'fastify';
 import { z } from 'zod';
 import { config } from '../config.js';
 import type { Db } from '../db.js';
+import { llmFallback } from '../llm/fallback.js';
+import type { LlmProvider } from '../llm/providers.js';
 import type { Logger } from '../logger.js';
 import { extractors } from '../extractors/index.js';
 import { processBatch } from '../pipeline/process.js';
@@ -12,7 +14,7 @@ import type { UploadedFile } from '../pipeline/types.js';
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Дата в формате ГГГГ-ММ-ДД');
 const IdParam = z.object({ id: z.coerce.number().int().positive() });
 
-export async function buildApp(logger: Logger, db: Db) {
+export async function buildApp(logger: Logger, db: Db, llm: LlmProvider | null = null) {
   const app = Fastify({ loggerInstance: logger });
   // Oversized files are read with a small headroom and rejected by ingest with a clear message.
   await app.register(multipart, { limits: { fileSize: config.upload.maxFileBytes + 1, files: 100 } });
@@ -24,7 +26,7 @@ export async function buildApp(logger: Logger, db: Db) {
   });
 
   app.get('/api/health', async () => ({ ok: true }));
-  app.get('/api/config', async () => ({ check_date: config.checkDate, fields: extractors.map((e) => ({ field: e.field, label: e.label })) }));
+  app.get('/api/config', async () => ({ check_date: config.checkDate, llm: llm ? `${llm.name}/${llm.model}` : null, fields: extractors.map((e) => ({ field: e.field, label: e.label })) }));
 
   app.post('/api/upload', async (req) => {
     const files: UploadedFile[] = [];
@@ -32,7 +34,10 @@ export async function buildApp(logger: Logger, db: Db) {
       const buffer = await part.toBuffer().catch(() => Buffer.alloc(config.upload.maxFileBytes + 1));
       files.push({ filename: part.filename, buffer });
     }
-    return processBatch(files, { db, logger });
+    const batch = processBatch(files, { db, logger });
+    // Optional: documents the rules did not recognise get an LLM suggestion (always "needs review").
+    await llmFallback({ db, logger }, llm, batch.batch_id);
+    return batch;
   });
 
   app.get('/api/contracts', async (req) => {
@@ -44,7 +49,7 @@ export async function buildApp(logger: Logger, db: Db) {
 
   app.get('/api/documents', async () =>
     db.prepare(`select id, filename, doc_type, doc_no, contract_no, sign_status, signed_date, effective_date,
-      classified_by, needs_review, review_reason from documents order by contract_no, doc_type, id`).all());
+      classified_by, needs_review, review_reason, llm_status, llm_suggestion from documents order by contract_no, doc_type, id`).all());
 
   app.get('/api/documents/:id', async (req, reply) => {
     const { id } = IdParam.parse(req.params);

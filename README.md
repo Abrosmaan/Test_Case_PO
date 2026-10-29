@@ -18,7 +18,8 @@ npm run dev          # API на 127.0.0.1:3000 + UI на http://127.0.0.1:5173
 | Команда | Что делает |
 |---|---|
 | `npm run dev` | сервер и UI |
-| `npm test` | все тесты (эталон, ловушки, мутации) |
+| `npm test` | unit- и API-тесты: эталон, ловушки, мутации, edge-кейсы (vitest, ≈1 с) |
+| `npm run test:e2e` | e2e в браузере (Playwright, Chromium): главный путь пользователя через настоящие UI, сервер и БД (≈5 с). Первый раз: `npx playwright install chromium` |
 | `npm run typecheck` | проверка типов TypeScript |
 | `npm run analyze -- "Test Files" [--date 2026-03-10]` | прогон без UI: таблица, решения и трасса в консоль |
 

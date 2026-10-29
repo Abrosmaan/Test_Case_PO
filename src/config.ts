@@ -1,4 +1,8 @@
 // All tunable values live here. Logic must not hardcode them.
+import { existsSync } from 'node:fs';
+
+// Optional local settings (.env is git-ignored). Real environment variables take precedence.
+if (existsSync('.env') && !process.env.VITEST) process.loadEnvFile('.env');
 
 const env = process.env;
 

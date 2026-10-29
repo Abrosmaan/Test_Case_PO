@@ -13,7 +13,8 @@ const TYPE_LABEL: Record<string, string> = { contract: 'договор', amendme
 const SIGN_LABEL: Record<string, string> = { signed_both: 'подписан обеими сторонами', unsigned: 'не подписан', unknown: '—' };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+// Escapes ' too: document text ends up inside single-quoted attributes (data-src).
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const fmt = (iso: string) => iso.split('-').reverse().join('.');
 
 let state: Resolution | null = null;
@@ -31,14 +32,18 @@ async function refresh() {
   state = await api<Resolution>(`/api/contracts?check_date=${checkDate()}`);
   $('date-label').textContent = fmt(state.check_date);
   renderContracts(state);
-  renderDocuments(await api<DocRow[]>('/api/documents'));
+  const docs = await api<DocRow[]>('/api/documents');
+  renderDocuments(docs);
+  document.body.classList.toggle('empty', docs.length === 0);
   const sel = $<HTMLSelectElement>('q-contract');
   const prev = sel.value;
   sel.innerHTML = state.contracts.map((c) => `<option>${esc(c.contract_no)}</option>`).join('');
   if (state.contracts.some((c) => c.contract_no === prev)) sel.value = prev;
 }
 
-function statusBadge(f: ResolvedField) {
+function statusBadge(f: ResolvedField, quietActive = false) {
+  // In the table the value itself already says "нет данных"; plain "действует" is the default.
+  if (quietActive && (f.status === 'active' || f.status === 'no_data')) return '';
   return `<span class="status ${f.status}">${esc(f.status_label)}</span>`;
 }
 
@@ -46,14 +51,15 @@ function renderContracts(res: Resolution) {
   const cell = (c: ResolvedContract, field: FieldName) => {
     const f = c.fields[field];
     const pending = c.proposals.some((p) => p.field === field) ? ' <span class="warn" title="Есть несогласованные предложения">⚠</span>' : '';
-    return `<td class="v" data-contract="${esc(c.contract_no)}" data-field="${field}">${esc(f.display)}${pending}<br>${statusBadge(f)}</td>`;
+    const badge = statusBadge(f, true);
+    return `<td class="v" data-contract="${esc(c.contract_no)}" data-field="${field}" title="Показать источник">${esc(f.display)}${pending}${badge ? `<br>${badge}` : ''}</td>`;
   };
   $('contracts-head').innerHTML = `<th>Договор</th>${FIELDS.map((f) => `<th>${esc(f.label)}</th>`).join('')}<th>Статус</th>`;
   $('contracts').innerHTML = res.contracts.length
     ? res.contracts.map((c) => `<tr>
         <td><b>${esc(c.contract_no)}</b></td>${FIELDS.map((f) => cell(c, f.field)).join('')}
         <td>${c.needs_review ? `<span class="status needs_review" title="${esc(c.review_reasons.join('; '))}">требует проверки</span>` : ''}
-            ${c.proposals.length ? `<span class="warn">есть несогласованные предложения: ${c.proposals.length}</span>` : ''}</td>
+            ${c.proposals.length ? `<span class="warn">⚠ несогласованных предложений: ${c.proposals.length}</span>` : ''}</td>
       </tr>`).join('')
     : `<tr><td colspan="${FIELDS.length + 2}" class="muted">Загрузите TXT-файлы договоров</td></tr>`;
   $('unlinked').innerHTML = res.unlinked.length
@@ -73,17 +79,30 @@ function renderDocuments(docs: DocRow[]) {
   </tr>`).join('');
 }
 
+/** The side panel opens only when there is something to show; the table is full width otherwise. */
+function openDetail(html: string) {
+  $('detail').innerHTML = `<button class="close" id="close-detail" title="Закрыть">×</button>${html}`;
+  $('layout').classList.add('has-detail');
+}
+function closeDetail() {
+  $('layout').classList.remove('has-detail');
+  document.querySelectorAll('td.v.selected').forEach((el) => el.classList.remove('selected'));
+}
+
 async function showSource(title: string, src: SourceRef | null, extraHtml = '') {
   if (!src) {
-    $('detail').innerHTML = `<h2 style="margin-top:0">${esc(title)}</h2>${extraHtml}`;
+    openDetail(`<h2 style="margin-top:0">${esc(title)}</h2>${extraHtml}`);
     return;
   }
   const doc = await api<DocFull>(`/api/documents/${src.document_id}`);
   const t = doc.text;
-  $('detail').innerHTML = `<h2 style="margin-top:0">${esc(title)}</h2>${extraHtml}
+  openDetail(`<h2 style="margin-top:0">${esc(title)}</h2>${extraHtml}
     <p class="muted">Источник: ${esc(src.doc_label)} · ${esc(src.filename)} · правило <code>${esc(src.rule_id)}</code></p>
-    <pre class="doc">${esc(t.slice(0, src.start))}<mark id="hl">${esc(t.slice(src.start, src.end))}</mark>${esc(t.slice(src.end))}</pre>`;
-  document.getElementById('hl')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    <pre class="doc">${esc(t.slice(0, src.start))}<mark id="hl">${esc(t.slice(src.start, src.end))}</mark>${esc(t.slice(src.end))}</pre>`);
+  // Scroll only the document box to the quote — the page itself stays where the user is.
+  const hl = document.getElementById('hl');
+  const pre = hl?.closest('pre');
+  if (hl && pre) pre.scrollTop = hl.offsetTop - pre.clientHeight / 3; // pre is positioned, so offsetTop is relative to it
 }
 
 function fieldDetail(c: ResolvedContract, field: FieldName) {
@@ -102,16 +121,16 @@ function fieldDetail(c: ResolvedContract, field: FieldName) {
 
 async function showDoc(id: number) {
   const doc = await api<DocFull>(`/api/documents/${id}`);
-  $('detail').innerHTML = `<h2 style="margin-top:0">${esc(doc.filename)}</h2><pre class="doc">${esc(doc.text)}</pre>`;
+  openDetail(`<h2 style="margin-top:0">${esc(doc.filename)}</h2><pre class="doc">${esc(doc.text)}</pre>`);
 }
 
 async function showTrace(id: number) {
   const rows = await api<TraceRow[]>(`/api/debug/trace/${id}`);
-  $('detail').innerHTML = `<h2 style="margin-top:0">Трасса документа #${id}</h2>
+  openDetail(`<h2 style="margin-top:0">Трасса документа #${id}</h2>
     <table><thead><tr><th>Этап</th><th>Правило</th><th>Решение</th></tr></thead><tbody>
     ${rows.map((r) => `<tr class="${r.rule_id?.includes('stop_word') || r.rule_id?.includes('no_rule') ? 'rejected' : ''}">
       <td>${esc(r.stage)}</td><td><code>${esc(r.rule_id ?? '')}</code></td><td>${esc(r.message)}</td></tr>`).join('')}
-    </tbody></table>`;
+    </tbody></table>`);
 }
 
 // --- Questions: answers are built from the same data as the table.
@@ -147,9 +166,12 @@ $('q-early').addEventListener('click', () => {
 
 // --- Events
 document.body.addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).id === 'close-detail') return closeDetail();
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-field],[data-doc],[data-trace],[data-src]');
   if (!el || !state) return;
   if (el.dataset.field) {
+    document.querySelectorAll('td.v.selected').forEach((x) => x.classList.remove('selected'));
+    el.classList.add('selected');
     const c = state.contracts.find((x) => x.contract_no === el.dataset.contract)!;
     void fieldDetail(c, el.dataset.field as FieldName);
   } else if (el.dataset.doc) void showDoc(Number(el.dataset.doc));
@@ -160,25 +182,68 @@ document.body.addEventListener('click', (e) => {
   }
 });
 
-$('upload').addEventListener('click', async () => {
-  const input = $<HTMLInputElement>('files');
-  if (!input.files?.length) return;
-  const form = new FormData();
-  for (const f of input.files) form.append('files', f, f.name);
-  const { results } = await api<{ results: FileResult[] }>('/api/upload', { method: 'POST', body: form });
-  $('upload-results').innerHTML = results.map((r) =>
-    r.status === 'ok' ? `<li>${esc(r.filename)}: принят</li>`
-    : r.status === 'duplicate' ? `<li class="muted">${esc(r.filename)}: уже загружен (как ${esc(r.duplicate_of)})</li>`
-    : `<li class="rejected">${esc(r.filename)}: отклонён — ${esc(r.reason)}</li>`).join('');
-  input.value = '';
-  await refresh();
-});
+// --- Upload: picking or dropping files uploads them at once.
+const drop = $<HTMLLabelElement>('drop');
+let busy = false;
+
+function plural(n: number, one: string, few: string, many: string) {
+  const m10 = n % 10, m100 = n % 100;
+  return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
+}
+
+async function uploadFiles(files: File[]) {
+  if (busy || files.length === 0) return;
+  busy = true;
+  drop.classList.add('busy');
+  $('drop-title').textContent = `Обрабатываю ${files.length} ${plural(files.length, 'файл', 'файла', 'файлов')}…`;
+  $('drop-hint').textContent = 'Проверяю формат, распознаю тип документа и извлекаю условия.';
+  $('upload-summary').innerHTML = '';
+  try {
+    const form = new FormData();
+    for (const f of files) form.append('files', f, f.name);
+    const { results } = await api<{ results: FileResult[] }>('/api/upload', { method: 'POST', body: form });
+    const ok = results.filter((r) => r.status === 'ok').length;
+    const dup = results.filter((r) => r.status === 'duplicate').length;
+    const bad = results.filter((r) => r.status === 'rejected').length;
+    const parts = [
+      ok && `<span class="ok">✓ принято ${ok}</span>`,
+      dup && `<span class="muted">уже были загружены: ${dup}</span>`,
+      bad && `<span class="rejected">✕ отклонено ${bad}</span>`,
+    ].filter(Boolean);
+    const list = results.map((r) =>
+      r.status === 'ok' ? `<li class="ok">${esc(r.filename)}: принят</li>`
+      : r.status === 'duplicate' ? `<li class="muted">${esc(r.filename)}: уже загружен (как ${esc(r.duplicate_of)}), дубль не создан</li>`
+      : `<li class="rejected">${esc(r.filename)}: ${esc(r.reason)}</li>`).join('');
+    // Details are open when something was rejected — that is what the user has to act on.
+    $('upload-summary').innerHTML = `<b>Загружено ${results.length} ${plural(results.length, 'файл', 'файла', 'файлов')}:</b> ${parts.join(' · ')}
+      <details ${bad ? 'open' : ''}><summary>подробно по файлам</summary><ul>${list}</ul></details>`;
+    await refresh();
+  } catch (err) {
+    $('upload-summary').innerHTML = `<span class="rejected">Не удалось загрузить: ${esc(String(err))}</span>`;
+  } finally {
+    busy = false;
+    drop.classList.remove('busy');
+    $('drop-title').textContent = 'Перетащите файлы сюда или нажмите, чтобы выбрать';
+    $('drop-hint').textContent = 'Можно сразу несколько: договоры, допсоглашения, проекты, письма. Формат — TXT.';
+    $<HTMLInputElement>('files').value = '';
+  }
+}
+
+$<HTMLInputElement>('files').addEventListener('change', (e) => void uploadFiles([...((e.target as HTMLInputElement).files ?? [])]));
+drop.addEventListener('click', (e) => { if (busy) e.preventDefault(); });
+for (const ev of ['dragenter', 'dragover'] as const) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
+for (const ev of ['dragleave', 'drop'] as const) drop.addEventListener(ev, () => drop.classList.remove('over'));
+drop.addEventListener('drop', (e) => { e.preventDefault(); void uploadFiles([...(e.dataTransfer?.files ?? [])]); });
+// A file dropped outside the zone must not make the browser navigate away from the page.
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => e.preventDefault());
 
 $('clear').addEventListener('click', async () => {
   if (!confirm('Удалить все загруженные документы?')) return;
   await api('/api/documents', { method: 'DELETE' });
-  $('upload-results').innerHTML = '';
-  $('detail').innerHTML = '<p class="muted">Нажмите на значение в таблице, чтобы увидеть источник.</p>';
+  $('upload-summary').innerHTML = '';
+  $('answer').innerHTML = '';
+  closeDetail();
   await refresh();
 });
 
@@ -188,14 +253,16 @@ $('check-date').addEventListener('change', () => void refresh());
 for (let attempt = 0; ; attempt++) {
   try {
     const cfg = await api<{ check_date: string; llm: string | null; fields: typeof FIELDS }>('/api/config');
-    $('llm-status').textContent = cfg.llm ? `LLM-фоллбэк: ${cfg.llm}` : 'LLM-фоллбэк выключен (нет ключа)';
+    $('llm-status').textContent = cfg.llm
+      ? `Нераспознанные документы подсказывает LLM: ${cfg.llm}`
+      : 'LLM не подключена: нераспознанные документы помечаются «требует проверки»';
     $<HTMLInputElement>('check-date').value = cfg.check_date;
     FIELDS = cfg.fields;
     for (const f of FIELDS) FIELD_LABEL[f.field] = f.label;
     await refresh();
     break;
   } catch (err) {
-    if (attempt >= 10) { $('contracts').innerHTML = `<tr><td colspan="5" class="rejected">Сервер недоступен: ${esc(String(err))}</td></tr>`; break; }
+    if (attempt >= 10) { $('upload-summary').innerHTML = `<span class="rejected">Сервер недоступен: ${esc(String(err))}. Запустите npm run dev.</span>`; break; }
     await new Promise((r) => setTimeout(r, 500));
   }
 }

@@ -6,50 +6,101 @@
   <title>Contract Checker</title>
   <style>
     :root { font: 14px/1.45 system-ui, -apple-system, sans-serif; color: #1d232a; background: #f6f7f9; }
-    body { margin: 0; padding: 16px 20px 40px; max-width: 1280px; }
-    h1 { font-size: 20px; margin: 0 0 12px; }
+    body { margin: 0 auto; padding: 16px 20px 40px; max-width: 1400px; }
+    h1 { font-size: 20px; margin: 0 0 2px; }
     h2 { font-size: 15px; margin: 20px 0 8px; }
+    .lead { margin: 0 0 14px; color: #5b6570; }
     section { overflow-x: auto; background: #fff; border: 1px solid #dde1e6; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
     .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    button { cursor: pointer; padding: 4px 10px; border: 1px solid #b9c0c8; border-radius: 6px; background: #fff; }
+    .spacer { flex: 1; }
+    button { cursor: pointer; padding: 4px 10px; border: 1px solid #b9c0c8; border-radius: 6px; background: #fff; font: inherit; }
     button:hover { background: #eef1f4; }
+    button.danger { color: #a3261b; border-color: #e3b5b0; }
     table { border-collapse: collapse; width: 100%; }
     th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e6e9ed; vertical-align: top; }
     th { font-weight: 600; color: #5b6570; font-size: 12px; }
     td.v { cursor: pointer; }
     td.v:hover { background: #eef4ff; }
+    td.v.selected { background: #e2ecff; }
     .muted { color: #6b7580; font-size: 12px; }
-    .status { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 10px; background: #eef1f4; color: #3c4650; }
+    .status { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 10px; background: #eef1f4; color: #3c4650; white-space: nowrap; }
     .status.amended { background: #e6f0ff; color: #1a4fa0; }
     .status.no_data { background: #f3f3f3; color: #777; }
     .status.needs_review, .warn { background: #fff4e0; color: #8a5300; }
     .warn { padding: 0 6px; border-radius: 10px; font-size: 11px; }
     .rejected { color: #a3261b; }
-    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
-    pre.doc { white-space: pre-wrap; font: 13px/1.5 ui-monospace, Menlo, monospace; background: #fafbfc; border: 1px solid #e6e9ed; padding: 10px; border-radius: 6px; max-height: 420px; overflow: auto; }
+    .ok { color: #1f7a3a; }
+
+    /* Upload: the whole zone is a drop target and a file picker. */
+    .drop { display: flex; align-items: center; gap: 12px; border: 2px dashed #b9c0c8; border-radius: 8px; padding: 14px 16px; cursor: pointer; background: #fafbfc; transition: background .15s, border-color .15s; }
+    .drop:hover, .drop.over { border-color: #3d7be0; background: #f0f6ff; }
+    .drop.busy { cursor: progress; border-style: solid; border-color: #3d7be0; background: #f0f6ff; }
+    .drop input { display: none; }
+    .drop .icon { font-size: 22px; }
+    .spinner { display: none; width: 16px; height: 16px; border: 2px solid #3d7be0; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+    .drop.busy .spinner { display: inline-block; }
+    .drop.busy .icon { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .summary { margin-top: 8px; }
+    .summary details { margin-top: 4px; }
+    .summary summary { cursor: pointer; color: #5b6570; font-size: 12px; }
+
+    /* Empty state: steps instead of an empty table. */
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 4px 0; }
+    .step { border: 1px solid #e6e9ed; border-radius: 8px; padding: 12px; background: #fafbfc; }
+    .step b { display: block; margin-bottom: 4px; }
+    .step .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #3d7be0; color: #fff; font-size: 12px; margin-bottom: 6px; }
+    @media (max-width: 720px) { .steps { grid-template-columns: 1fr; } }
+    body.empty .when-data { display: none; }
+    body:not(.empty) .when-empty { display: none; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: #5b6570; }
+
+    /* Table takes the full width until a value is opened. */
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .layout.has-detail { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+    .layout:not(.has-detail) #detail { display: none; }
+    @media (max-width: 1000px) { .layout.has-detail { grid-template-columns: minmax(0, 1fr); } }
+    #detail { position: sticky; top: 12px; align-self: start; max-height: calc(100vh - 24px); overflow: auto; }
+    #detail .close { position: absolute; top: 8px; right: 8px; border: none; font-size: 18px; line-height: 1; padding: 2px 6px; }
+
+    pre.doc { position: relative; white-space: pre-wrap; font: 13px/1.5 ui-monospace, Menlo, monospace; background: #fafbfc; border: 1px solid #e6e9ed; padding: 10px; border-radius: 6px; max-height: 420px; overflow: auto; }
     mark { background: #fff1a8; padding: 0 1px; }
     .answer { margin-top: 8px; padding: 8px 10px; background: #f0f6ff; border-radius: 6px; }
     td button { white-space: nowrap; margin: 1px 0; }
     ul { margin: 4px 0; padding-left: 18px; }
   </style>
 </head>
-<body>
+<body class="empty">
   <h1>Проверка условий договоров поставки</h1>
+  <p class="lead">Покажет, какие сумма и срок действуют по договору на дату проверки, и откуда взято каждое значение.</p>
 
   <section>
-    <div class="row">
+    <label id="drop" class="drop">
       <input id="files" type="file" multiple />
-      <button id="upload">Загрузить</button>
-      <span style="flex:1"></span>
+      <span class="icon">📄</span><span class="spinner"></span>
+      <span>
+        <b id="drop-title">Перетащите файлы сюда или нажмите, чтобы выбрать</b><br>
+        <span class="muted" id="drop-hint">Можно сразу несколько: договоры, допсоглашения, проекты, письма. Формат — TXT.</span>
+      </span>
+    </label>
+    <div class="summary" id="upload-summary"></div>
+    <div class="row" style="margin-top:10px">
       <label>Дата проверки <input id="check-date" type="date" /></label>
-      <button id="clear" title="Удалить все загруженные документы">Очистить</button>
+      <span class="spacer"></span>
+      <span class="muted" id="llm-status"></span>
     </div>
-    <div class="muted" id="llm-status"></div>
-    <ul id="upload-results"></ul>
   </section>
 
-  <section>
+  <section class="when-empty">
+    <div class="steps">
+      <div class="step"><span class="n">1</span><b>Загрузите документы</b>Договоры, допсоглашения, проекты и письма поставщиков в TXT. Порядок и имена файлов не важны.</div>
+      <div class="step"><span class="n">2</span><b>Выберите дату проверки</b>Изменения действуют только по подписанным допсоглашениям, которые вступили в силу к этой дате.</div>
+      <div class="step"><span class="n">3</span><b>Проверьте источник</b>Нажмите на значение в таблице — откроется документ с подсвеченной цитатой и историей изменений.</div>
+    </div>
+  </section>
+
+  <section class="when-data">
     <h2 style="margin-top:0">Вопросы</h2>
     <div class="row">
       <select id="q-contract"></select>
@@ -62,21 +113,32 @@
     <div id="answer"></div>
   </section>
 
-  <div class="layout">
+  <div class="layout when-data" id="layout">
     <section>
       <h2 style="margin-top:0">Договоры на <span id="date-label"></span></h2>
       <table>
         <thead><tr id="contracts-head"></tr></thead>
         <tbody id="contracts"></tbody>
       </table>
+      <div class="legend">
+        <span>Без отметки — действует по договору</span>
+        <span><span class="status amended">изменено ДС №N</span> изменено подписанным допсоглашением</span>
+        <span><b>нет данных</b> — значения нет в тексте, причина — по клику</span>
+        <span><span class="warn">⚠</span> есть несогласованные предложения (письма, проекты) — значение они не меняют</span>
+        <span><span class="status needs_review">требует проверки</span> документы противоречат друг другу или не распознаны</span>
+      </div>
       <div id="unlinked"></div>
-      <h2>Загруженные документы</h2>
+      <div class="row" style="margin-top:20px">
+        <h2 style="margin:0">Загруженные документы</h2>
+        <span class="spacer"></span>
+        <button id="clear" class="danger" title="Удалить все загруженные документы">Удалить все</button>
+      </div>
       <table>
         <thead><tr><th>Файл</th><th>Тип</th><th>Договор</th><th>Подписание</th><th></th></tr></thead>
         <tbody id="documents"></tbody>
       </table>
     </section>
-    <section id="detail"><p class="muted">Нажмите на значение в таблице, чтобы увидеть источник и цепочку изменений.</p></section>
+    <section id="detail"></section>
   </div>
 
   <script type="module" src="./main.ts"></script>

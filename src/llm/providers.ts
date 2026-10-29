@@ -37,7 +37,8 @@ function ollama(model: string): LlmProvider {
         method: 'POST',
         signal,
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ model, prompt, stream: false, format: 'json', options: { temperature: 0 } }),
+        // think: false — reasoning models (qwen3, deepseek-r1) answer ~15× faster; others ignore it.
+        body: JSON.stringify({ model, prompt, stream: false, format: 'json', think: false, options: { temperature: 0 } }),
       });
       if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
       return ((await res.json()) as { response?: string }).response ?? '';

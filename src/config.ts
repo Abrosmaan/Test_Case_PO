@@ -76,7 +76,7 @@ export const config = {
   llm: {
     provider: env.LLM_PROVIDER ?? 'auto',
     model: env.LLM_MODEL ?? '',
-    defaultModels: { gemini: 'gemini-2.5-flash', ollama: 'llama3.2' },
+    defaultModels: { gemini: 'gemini-2.5-flash', ollama: 'qwen3:8b' },
     ollamaUrl: env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
     timeoutMs: Number(env.LLM_TIMEOUT_MS ?? 15_000),
     /** Retries after the first attempt, with exponential backoff. */

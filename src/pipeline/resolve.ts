@@ -169,7 +169,8 @@ export function resolve(db: Db, checkDate: string): Resolution {
 
 function llmReason(d: DocRow): string {
   const s = d.llm_suggestion ? (JSON.parse(d.llm_suggestion) as { model: string; quote: string }) : null;
-  const what = `${TYPE_LABEL[d.doc_type] ?? 'Документ'}${d.contract_no ? ` к договору ${d.contract_no}` : ''}`;
+  const no = d.contract_no ? ` ${d.doc_type === 'contract' ? '' : 'к договору '}${d.contract_no}` : '';
+  const what = `${TYPE_LABEL[d.doc_type] ?? 'Документ'}${no}`;
   return `требует проверки: LLM (${s?.model ?? '?'}) предполагает «${what}» по цитате «${s?.quote ?? ''}»; в таблицу не попадает до подтверждения`;
 }
 

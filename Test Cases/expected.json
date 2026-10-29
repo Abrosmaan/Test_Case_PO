@@ -1,0 +1,1495 @@
+{
+  "check_date": "2026-03-10",
+  "total_documents": 80,
+  "legend": {
+    "amount/delivery_date": "число / ISO-дата / 'no_data' / 'needs_review'",
+    "ingest": "accepted / rejected / duplicate / rejected_or_needs_review"
+  },
+  "batches": {
+    "01_positive_formats": {
+      "documents": [
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-202_kopecks_textdate.txt",
+          "kind": "positive",
+          "case": "Сумма с копейками, дата прописью месяца",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-202",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-203_iso_date_rub.txt",
+          "kind": "positive",
+          "case": "Сумма без пробелов «руб.», дата ISO",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-203",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-204_nbsp_shortyear.txt",
+          "kind": "positive",
+          "case": "Неразрывные пробелы в сумме, год из двух цифр",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-204",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-205_crlf_bom.txt",
+          "kind": "positive",
+          "case": "UTF-8 с BOM и переводами строк CRLF",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-205",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-206_cp1251.txt",
+          "kind": "positive",
+          "case": "Кодировка Windows-1251 (по SPEC поддерживается)",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-206",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-207_upper_ext.TXT",
+          "kind": "positive",
+          "case": "Расширение в верхнем регистре .TXT",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-207",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-208_price_synonym.txt",
+          "kind": "positive",
+          "case": "Синоним «Цена договора», прямые кавычки, «п. 2.1»",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-208",
+          "sign_status": "signed_both",
+          "note": "Если экстрактор не знает синоним — допустимо «требует проверки», но не чужое число."
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-209_ip_tabs_blanklines.txt",
+          "kind": "positive",
+          "case": "Поставщик — ИП, табы, лишние пробелы и пустые строки",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-209",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-210_no_numbering.txt",
+          "kind": "positive",
+          "case": "Пункты без нумерации — якорь по абзацу/строке",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-210",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-211_dotted_thousands.txt",
+          "kind": "positive",
+          "case": "Сумма с точками-разделителями и копейками «1.200.000,00 руб.»",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-211",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "01_positive_formats",
+          "file": "01_STN-212_legal_date.txt",
+          "kind": "positive",
+          "case": "Юридический формат даты «28» марта 2026 года",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-212",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-202",
+          "supplier": "ООО «Бета Кабель»",
+          "amount": 2450000.5,
+          "delivery_date": "2026-04-15",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-203",
+          "supplier": "ООО «Гамма Привод»",
+          "amount": 3100000,
+          "delivery_date": "2026-05-20",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-204",
+          "supplier": "ООО «Дельта Металл»",
+          "amount": 1050000,
+          "delivery_date": "2026-04-30",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-205",
+          "supplier": "ООО «Эпсилон Арматура»",
+          "amount": 670000,
+          "delivery_date": "2026-03-18",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-206",
+          "supplier": "ООО «Зета Пневмо»",
+          "amount": 1280000,
+          "delivery_date": "2026-04-22",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-207",
+          "supplier": "ООО «Эта Подшипник»",
+          "amount": 345000,
+          "delivery_date": "2026-03-27",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-208",
+          "supplier": "АО \"Тета Энерго\"",
+          "amount": 720000,
+          "delivery_date": "2026-04-08",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-209",
+          "supplier": "ИП Иванов Иван Иванович",
+          "amount": 215000,
+          "delivery_date": "2026-03-12",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-210",
+          "supplier": "ООО «Йота Лаб»",
+          "amount": 98500,
+          "delivery_date": "2026-04-03",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-211",
+          "supplier": "ООО «Каппа Сталь»",
+          "amount": 1200000,
+          "delivery_date": "2026-05-10",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-212",
+          "supplier": "ООО «Лямбда Склад»",
+          "amount": 432000,
+          "delivery_date": "2026-03-28",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        }
+      ]
+    },
+    "02_amendments/a_two_signed_reverse_names": {
+      "documents": [
+        {
+          "batch": "02_amendments/a_two_signed_reverse_names",
+          "file": "02a_a_2026-03-05_ds2.txt",
+          "kind": "positive",
+          "case": "ДС №2 (срок) — имя файла раньше договора по алфавиту",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-301",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/a_two_signed_reverse_names",
+          "file": "02a_b_2026-03-01_ds1.txt",
+          "kind": "positive",
+          "case": "ДС №1 (сумма)",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-301",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/a_two_signed_reverse_names",
+          "file": "02a_z_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-301",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-301",
+          "supplier": "ООО «Мю Электрик»",
+          "amount": 650000,
+          "delivery_date": "2026-04-15",
+          "amount_source": "02a_b_2026-03-01_ds1.txt",
+          "delivery_source": "02a_a_2026-03-05_ds2.txt",
+          "proposals": [],
+          "note": ""
+        }
+      ]
+    },
+    "02_amendments/b_signed_future_effective": {
+      "documents": [
+        {
+          "batch": "02_amendments/b_signed_future_effective",
+          "file": "02b_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-302",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/b_signed_future_effective",
+          "file": "02b_ds1_future.txt",
+          "kind": "negative",
+          "case": "ДС подписан 09.03, вступает в силу 15.03 — на 10.03 не действует; при CHECK_DATE ≥ 15.03 применяется",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-302",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-302",
+          "supplier": "ООО «Ню Гидро»",
+          "amount": 900000,
+          "delivery_date": "2026-04-20",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [
+            {
+              "field": "amount",
+              "value": 950000,
+              "source": "02b_ds1_future.txt",
+              "reason": "вступает в силу 15.03.2026 — позже даты проверки"
+            }
+          ],
+          "note": "При check_date=2026-03-20 ожидается сумма 950 000 из ds1_future.txt"
+        }
+      ]
+    },
+    "02_amendments/c_signed_one_party": {
+      "documents": [
+        {
+          "batch": "02_amendments/c_signed_one_party",
+          "file": "02c_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-303",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/c_signed_one_party",
+          "file": "02c_ds1_supplier_only.txt",
+          "kind": "negative",
+          "case": "ДС подписан только поставщиком — не применяется",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-303",
+          "sign_status": "unsigned",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-303",
+          "supplier": "ООО «Кси Оптика»",
+          "amount": 410000,
+          "delivery_date": "2026-03-25",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [
+            {
+              "field": "delivery_date",
+              "value": "2026-04-05",
+              "source": "02c_ds1_supplier_only.txt",
+              "reason": "подписано одной стороной"
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    "02_amendments/d_no_effective_date": {
+      "documents": [
+        {
+          "batch": "02_amendments/d_no_effective_date",
+          "file": "02d_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-304",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/d_no_effective_date",
+          "file": "02d_ds1_no_effective.txt",
+          "kind": "negative",
+          "case": "ДС подписан обеими, но даты вступления в силу нет — по п.5.1 договора требует проверки",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-304",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-304",
+          "supplier": "ООО «Омикрон Свет»",
+          "amount": "needs_review",
+          "delivery_date": "2026-04-16",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Сумма: базовая 287 000, но ДС без даты вступления в силу → «требует проверки», показать оба значения с источниками"
+        }
+      ]
+    },
+    "02_amendments/e_amendment_penalty_only": {
+      "documents": [
+        {
+          "batch": "02_amendments/e_amendment_penalty_only",
+          "file": "02e_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-305",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/e_amendment_penalty_only",
+          "file": "02e_ds1_penalty.txt",
+          "kind": "positive",
+          "case": "ДС меняет только неустойку — сумма и срок не меняются",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-305",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-305",
+          "supplier": "ООО «Пи Компрессор»",
+          "amount": 1640000,
+          "delivery_date": "2026-04-29",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Для фичи неустойки: действует 0,2% (ДС №1)"
+        }
+      ]
+    },
+    "02_amendments/f_orphan_amendment": {
+      "documents": [
+        {
+          "batch": "02_amendments/f_orphan_amendment",
+          "file": "02f_ds_to_missing_contract.txt",
+          "kind": "negative",
+          "case": "ДС к договору STN-399, которого нет в загрузке → «не связан с договором»",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-399",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": []
+    },
+    "02_amendments/g_conflicting_same_date": {
+      "documents": [
+        {
+          "batch": "02_amendments/g_conflicting_same_date",
+          "file": "02g_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-306",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/g_conflicting_same_date",
+          "file": "02g_ds1.txt",
+          "kind": "negative",
+          "case": "ДС №1: другая сумма, та же дата вступления 03.03 — конфликт",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-306",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/g_conflicting_same_date",
+          "file": "02g_ds2.txt",
+          "kind": "negative",
+          "case": "ДС №2: другая сумма, та же дата вступления 03.03 — конфликт",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-306",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-306",
+          "supplier": "ООО «Сигма Вент»",
+          "amount": "needs_review",
+          "delivery_date": "2026-04-14",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Два подписанных ДС с одной датой вступления меняют сумму по-разному → требует проверки, без выбора «последнего файла»"
+        }
+      ]
+    },
+    "02_amendments/h_signed_after_check_date": {
+      "documents": [
+        {
+          "batch": "02_amendments/h_signed_after_check_date",
+          "file": "02h_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-307",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/h_signed_after_check_date",
+          "file": "02h_ds1_after.txt",
+          "kind": "negative",
+          "case": "ДС подписан и вступает в силу 12.03 — после даты проверки",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-307",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-307",
+          "supplier": "ООО «Тау Насос»",
+          "amount": 356000,
+          "delivery_date": "2026-04-02",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [
+            {
+              "field": "delivery_date",
+              "value": "2026-04-20",
+              "source": "02h_ds1_after.txt",
+              "reason": "вступает в силу после даты проверки"
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    "02_amendments/i_buyer_consent_letter": {
+      "documents": [
+        {
+          "batch": "02_amendments/i_buyer_consent_letter",
+          "file": "02i_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-308",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/i_buyer_consent_letter",
+          "file": "02i_letter_buyer_consent.txt",
+          "kind": "negative",
+          "case": "Письмо покупателя «согласны» — без подписанного ДС условия не меняются",
+          "ingest": "accepted",
+          "doc_type": "letter",
+          "contract_no": "STN-308",
+          "sign_status": null,
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-308",
+          "supplier": "ООО «Ипсилон Тех»",
+          "amount": 505000,
+          "delivery_date": "2026-03-24",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [
+            {
+              "field": "delivery_date",
+              "value": "2026-04-07",
+              "source": "02i_letter_buyer_consent.txt",
+              "reason": "письмо покупателя, ДС не подписано"
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    "02_amendments/j_contradictory_status": {
+      "documents": [
+        {
+          "batch": "02_amendments/j_contradictory_status",
+          "file": "02j_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-309",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/j_contradictory_status",
+          "file": "02j_draft_but_signed.txt",
+          "kind": "negative",
+          "case": "Заголовок «ПРОЕКТ», а статус «подписано обеими сторонами» → требует проверки",
+          "ingest": "accepted",
+          "doc_type": "draft",
+          "contract_no": "STN-309",
+          "sign_status": "needs_review",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-309",
+          "supplier": "ООО «Фи Сенсор»",
+          "amount": 612000,
+          "delivery_date": "2026-04-17",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [
+            {
+              "field": "amount",
+              "value": 640000,
+              "source": "02j_draft_but_signed.txt",
+              "reason": "противоречивый статус — требует проверки"
+            }
+          ],
+          "note": "Допустимо и status=needs_review для суммы; недопустимо молча применить 640 000"
+        }
+      ]
+    },
+    "02_amendments/k_nonstandard_edit_form": {
+      "documents": [
+        {
+          "batch": "02_amendments/k_nonstandard_edit_form",
+          "file": "02k_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-310",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/k_nonstandard_edit_form",
+          "file": "02k_ds1_replace_words.txt",
+          "kind": "negative",
+          "case": "ДС в форме «заменить слова … на …» — правило «изложить в редакции» не срабатывает",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-310",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-310",
+          "supplier": "ООО «Хи Термо»",
+          "amount": 188000,
+          "delivery_date": "needs_review",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Идеально — 22.04.2026 из ДС; минимально допустимо — «требует проверки» с указанием ДС. Недопустимо — молча 15.04.2026"
+        }
+      ]
+    },
+    "02_amendments/l_chain_override": {
+      "documents": [
+        {
+          "batch": "02_amendments/l_chain_override",
+          "file": "02l_contract.txt",
+          "kind": "positive",
+          "case": "Договор",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-311",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/l_chain_override",
+          "file": "02l_2026-03-09_ds1.txt",
+          "kind": "positive",
+          "case": "ДС №1: сумма 1 100 000 (вступает 01.03; дата в имени файла лжёт)",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-311",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "02_amendments/l_chain_override",
+          "file": "02l_2026-02-01_ds2.txt",
+          "kind": "positive",
+          "case": "ДС №2: сумма 1 150 000 (вступает 07.03; дата в имени файла лжёт)",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-311",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-311",
+          "supplier": "ООО «Пси Энергия»",
+          "amount": 1150000,
+          "delivery_date": "2026-03-30",
+          "amount_source": "02l_2026-02-01_ds2.txt",
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Цепочка: 1 000 000 → 1 100 000 (ДС1) → 1 150 000 (ДС2)"
+        }
+      ]
+    },
+    "03_traps": {
+      "documents": [
+        {
+          "batch": "03_traps",
+          "file": "03_STN-401_vat_trap.txt",
+          "kind": "positive",
+          "case": "Сумма НДС рядом с общей стоимостью",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-401",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-402_penalty_advance_trap.txt",
+          "kind": "positive",
+          "case": "Штраф 50 000 и аванс 30% до суммы договора",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-402",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-403_staged_delivery.txt",
+          "kind": "negative",
+          "case": "Поставка двумя партиями — два срока",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-403",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-404_relative_date.txt",
+          "kind": "negative",
+          "case": "Срок относительный: 45 дней с даты подписания",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-404",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-405_usd.txt",
+          "kind": "negative",
+          "case": "Сумма в долларах США — рублёвой суммы нет",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-405",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-406_estimated_price.txt",
+          "kind": "negative",
+          "case": "Ориентировочная стоимость, окончательная — по спецификации",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-406",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-407_amount_words_only.txt",
+          "kind": "negative",
+          "case": "Сумма только прописью",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-407",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-408_three_dates.txt",
+          "kind": "positive",
+          "case": "Три даты: оплата 05.04, приемка 10.04, поставка 28.03",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-408",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-499_contract.txt",
+          "kind": "positive",
+          "case": "Имя файла STN-499, внутри STN-409 — номер берётся из текста",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-409",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "03_traps",
+          "file": "03_STN-410_mentions_other.txt",
+          "kind": "positive",
+          "case": "Договор ссылается на STN-101 — не привязывать к нему",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-410",
+          "sign_status": "signed_both",
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-401",
+          "supplier": "ООО «Омега Строй»",
+          "amount": 900000,
+          "delivery_date": "2026-03-26",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-402",
+          "supplier": "ООО «Атлант Логистик»",
+          "amount": 1500000,
+          "delivery_date": "2026-04-09",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Общая стоимость в п.2.2, а не 2.1 — привязка к фразе, не к номеру пункта"
+        },
+        {
+          "contract_no": "STN-403",
+          "supplier": "ООО «Борей Холод»",
+          "amount": 2200000,
+          "delivery_date": "needs_review",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Два срока: показать оба с цитатой, отметить «требует проверки». Для вопроса 4 — договор с первой партией до 01.04"
+        },
+        {
+          "contract_no": "STN-404",
+          "supplier": "ООО «Вега Принт»",
+          "amount": 760000,
+          "delivery_date": "needs_review",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Без вычисления даты — «требует проверки». Если вычислять, то 2026-03-22 с пометкой «рассчитано»"
+        },
+        {
+          "contract_no": "STN-405",
+          "supplier": "ООО «Гелиос Импорт»",
+          "amount": "needs_review",
+          "delivery_date": "2026-04-21",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Не выдавать 15 000 как рубли. Допустимо «нет данных в рублях» или «требует проверки: валюта USD»"
+        },
+        {
+          "contract_no": "STN-406",
+          "supplier": "ООО «Деметра Агро»",
+          "amount": "needs_review",
+          "delivery_date": "2026-04-28",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Ориентировочная ≠ итоговая"
+        },
+        {
+          "contract_no": "STN-407",
+          "supplier": "ООО «Эол Ветер»",
+          "amount": "needs_review",
+          "delivery_date": "2026-04-13",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Без разбора прописи — «требует проверки» с цитатой; с разбором — 1 200 000"
+        },
+        {
+          "contract_no": "STN-408",
+          "supplier": "ООО «Зефир Климат»",
+          "amount": 1870000,
+          "delivery_date": "2026-03-28",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-409",
+          "supplier": "ООО «Ирида Цвет»",
+          "amount": 264000,
+          "delivery_date": "2026-03-19",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-410",
+          "supplier": "ООО «Кронос Часы»",
+          "amount": 530000,
+          "delivery_date": "2026-04-06",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "STN-101 не должен получить этот документ в связанные"
+        }
+      ]
+    },
+    "04_ingest_negative": {
+      "documents": [
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_koi8r_contract.txt",
+          "kind": "negative",
+          "case": "KOI8-R: декодируется как cp1251 в «правдоподобную» кириллицу-мусор",
+          "ingest": "rejected_or_needs_review",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": "Ожидается отказ «нечитаемая кодировка» или документ unknown/needs_review. Недопустимо — извлечь значения."
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_utf16le_bom_contract.txt",
+          "kind": "negative",
+          "case": "UTF-16 LE с BOM",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": "SPEC: только UTF-8 и cp1251 → понятный отказ (или поддержка UTF-16 как улучшение)"
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_mojibake_utf8.txt",
+          "kind": "negative",
+          "case": "Двойная перекодировка: UTF-8 текст, сохранённый как cp1252 → «Ð”ÐžÐ“…»",
+          "ingest": "accepted",
+          "doc_type": "unknown",
+          "contract_no": null,
+          "sign_status": null,
+          "note": "Классификатор не распознаёт → требует проверки"
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_empty.txt",
+          "kind": "negative",
+          "case": "Пустой файл 0 байт",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_image_renamed.txt",
+          "kind": "negative",
+          "case": "PNG, переименованный в .txt",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_STN-501_contract.docx",
+          "kind": "negative",
+          "case": "DOCX с договором",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_STN-501_contract.pdf",
+          "kind": "negative",
+          "case": "PDF с текстовым слоем",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_STN-502_contract.pdf.txt",
+          "kind": "positive",
+          "case": "Двойное расширение .pdf.txt, внутри обычный текст → принять",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-502",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_contracts.xlsx",
+          "kind": "negative",
+          "case": "XLSX",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_contracts.zip",
+          "kind": "negative",
+          "case": "ZIP-архив с TXT внутри",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_STN-501_no_extension",
+          "kind": "negative",
+          "case": "Файл без расширения (внутри валидный текст)",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_STN-503_too_big.txt",
+          "kind": "negative",
+          "case": "Файл больше 1 МБ",
+          "ingest": "rejected",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_dup_a_STN-101.txt",
+          "kind": "positive",
+          "case": "Точная копия эталонного 01_contract.txt",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-101",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "04_ingest_negative",
+          "file": "04_dup_b_renamed.txt",
+          "kind": "negative",
+          "case": "Та же копия под другим именем → дедупликация по sha256",
+          "ingest": "duplicate",
+          "doc_type": null,
+          "contract_no": null,
+          "sign_status": null,
+          "note": ""
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-502",
+          "supplier": "ООО «Марс Упак»",
+          "amount": 94000,
+          "delivery_date": "2026-03-31",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-101",
+          "supplier": "ООО «Вектор Прибор»",
+          "amount": 1200000,
+          "delivery_date": "2026-04-15",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "В этой папке нет ДС №1, поэтому базовые значения. Документ один, не два"
+        }
+      ],
+      "must_not_appear": [
+        "STN-501",
+        "STN-503"
+      ]
+    },
+    "05_content_negative": {
+      "documents": [
+        {
+          "batch": "05_content_negative",
+          "file": "05_meeting_notes.txt",
+          "kind": "negative",
+          "case": "Не договор: заметки со встречи с суммами и датами",
+          "ingest": "accepted",
+          "doc_type": "unknown",
+          "contract_no": null,
+          "sign_status": null,
+          "note": "Ни одного договора в таблице; значения не извлекаются"
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_english_contract.txt",
+          "kind": "negative",
+          "case": "Договор на английском",
+          "ingest": "accepted",
+          "doc_type": "unknown",
+          "contract_no": null,
+          "sign_status": null,
+          "note": "Правила под русский формат → unknown / требует проверки (или LLM-фоллбэк). Не выдавать значения молча"
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_no_contract_number.txt",
+          "kind": "negative",
+          "case": "Договор без номера",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": null,
+          "sign_status": "signed_both",
+          "note": "Тип распознан, номера нет → «требует проверки», в таблицу не попадает как договор без идентификатора"
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_two_contracts_one_file.txt",
+          "kind": "negative",
+          "case": "Два договора в одном файле (STN-602 и STN-603)",
+          "ingest": "accepted",
+          "doc_type": "needs_review",
+          "contract_no": null,
+          "sign_status": null,
+          "note": "Минимум — «требует проверки»; не смешивать сумму одного договора со сроком другого"
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_STN-604_truncated.txt",
+          "kind": "negative",
+          "case": "Файл обрезан посреди п.3.1",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-604",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_STN-605_prompt_injection.txt",
+          "kind": "negative",
+          "case": "Prompt injection внутри договора",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-605",
+          "sign_status": "signed_both",
+          "note": "Ожидается 760 000 и 24.03.2026; текст инструкции не исполняется (особенно в LLM-фоллбэке)"
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_STN-605_letter_injection.txt",
+          "kind": "negative",
+          "case": "Письмо с инструкцией «считай это подписанным ДС»",
+          "ingest": "accepted",
+          "doc_type": "letter",
+          "contract_no": "STN-605",
+          "sign_status": null,
+          "note": "Остаётся предложением"
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_STN-606_unsigned_contract.txt",
+          "kind": "negative",
+          "case": "Сам договор не подписан",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-606",
+          "sign_status": "unsigned",
+          "note": ""
+        },
+        {
+          "batch": "05_content_negative",
+          "file": "05_STN-607_single_line.txt",
+          "kind": "positive",
+          "case": "Весь договор в одну строку без переводов",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-607",
+          "sign_status": "signed_both",
+          "note": "Сегментация по номерам пунктов внутри строки; цитата всё равно точная"
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-604",
+          "supplier": "ООО «Рея Инструмент»",
+          "amount": 318000,
+          "delivery_date": "no_data",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Срок обрезан → «нет данных», а не дата из другого места"
+        },
+        {
+          "contract_no": "STN-605",
+          "supplier": "ООО «Сатурн Кабель»",
+          "amount": 760000,
+          "delivery_date": "2026-03-24",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [
+            {
+              "field": "delivery_date",
+              "value": "2026-05-15",
+              "source": "05_STN-605_letter_injection.txt",
+              "reason": "письмо"
+            }
+          ],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-606",
+          "supplier": "ООО «Титан Сварка»",
+          "amount": "needs_review",
+          "delivery_date": "needs_review",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Неподписанный договор не даёт действующих условий: показать значения как проектные, статус «требует проверки»"
+        },
+        {
+          "contract_no": "STN-607",
+          "supplier": "ООО «Уран Электро»",
+          "amount": 845000,
+          "delivery_date": "2026-04-14",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        }
+      ],
+      "must_not_appear": [
+        "STN-601"
+      ],
+      "note": "STN-602/STN-603 из two_contracts_one_file.txt: если попадают в таблицу, сумма и срок не перемешаны между договорами"
+    },
+    "06_typos": {
+      "documents": [
+        {
+          "batch": "06_typos",
+          "file": "06_STN-701_keyword_typos.txt",
+          "kind": "positive",
+          "case": "Опечатки в ключевых словах: «Обшая стоимость», «Поставшик», «не позденее»",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-701",
+          "sign_status": "signed_both",
+          "note": "Ожидается распознавание нечётким поиском. Минимально допустимо — «требует проверки» с цитатой; недопустимо — «нет данных» без пометки"
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN-702_header_status_typos.txt",
+          "kind": "positive",
+          "case": "«ДОГОВР ПОСТАВКИ», «подписан обоими сторонами»",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-702",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_stn-703_lowercase.txt",
+          "kind": "positive",
+          "case": "Заголовок строчными, «№stn-703» без пробела и в нижнем регистре",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-703",
+          "sign_status": "signed_both",
+          "note": "Номер нормализуется к STN-703"
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN-704_contract.txt",
+          "kind": "positive",
+          "case": "Договор STN-704 (латиница)",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-704",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN-704_ds1_cyrillic_T.txt",
+          "kind": "negative",
+          "case": "ДС ссылается на «SТN-704», где Т — кириллица: визуально тот же номер",
+          "ingest": "accepted",
+          "doc_type": "amendment",
+          "contract_no": "STN-704",
+          "sign_status": "signed_both",
+          "note": "Не создавать отдельный договор SТN-704 и не применять молча. Допустимо: связать с пометкой «номер нормализован (кириллица → латиница)» или «требует проверки»"
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN_705_broken_amount.txt",
+          "kind": "negative",
+          "case": "Номер «STN 705» без дефиса; сумма «1 200 00 0» с лишним пробелом",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-705",
+          "sign_status": "signed_both",
+          "note": "Номер нормализуется; сумму не угадывать (1 200 000? 120 000?) — «требует проверки» (пропись подтверждает 1 200 000, если её разбирать)"
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN-706_letter_O_in_year.txt",
+          "kind": "negative",
+          "case": "Дата «30.04.2O26» — буква O вместо нуля",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-706",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN-707_impossible_date.txt",
+          "kind": "negative",
+          "case": "Несуществующая дата 31.02.2026",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "STN-707",
+          "sign_status": "signed_both",
+          "note": ""
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN-708_wrong_layout.txt",
+          "kind": "negative",
+          "case": "Заголовок в английской раскладке: «LJUJDJH GJCNFDRB»",
+          "ingest": "accepted",
+          "doc_type": "unknown",
+          "contract_no": null,
+          "sign_status": null,
+          "note": "Тип не распознан по правилам → «требует проверки» (кандидат для LLM-фоллбэка). Значения в таблицу не выводить"
+        },
+        {
+          "batch": "06_typos",
+          "file": "06_STN-709_letter_O_in_number.txt",
+          "kind": "negative",
+          "case": "Номер «STN-7O9» — буква O вместо нуля",
+          "ingest": "accepted",
+          "doc_type": "contract",
+          "contract_no": "needs_review",
+          "sign_status": "signed_both",
+          "note": "Не приравнивать к STN-709 молча: договор с пометкой «номер подозрительный» или «требует проверки»"
+        }
+      ],
+      "contracts": [
+        {
+          "contract_no": "STN-701",
+          "supplier": "ООО «Фобос Механика»",
+          "amount": 455000,
+          "delivery_date": "2026-04-07",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-702",
+          "supplier": "ООО «Деймос Литьё»",
+          "amount": 690000,
+          "delivery_date": "2026-04-17",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-703",
+          "supplier": "ООО «Ганимед Пром»",
+          "amount": 128000,
+          "delivery_date": "2026-03-23",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-704",
+          "supplier": "ООО «Каллисто Энерго»",
+          "amount": "needs_review",
+          "delivery_date": "2026-04-28",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Базовая 2 900 000; ДС №1 (3 050 000) привязан через нормализацию гомоглифа — показать с предупреждением. Недопустимо: два договора STN-704 в таблице"
+        },
+        {
+          "contract_no": "STN-705",
+          "supplier": "ООО «Европа Фильтр»",
+          "amount": "needs_review",
+          "delivery_date": "2026-04-02",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": ""
+        },
+        {
+          "contract_no": "STN-706",
+          "supplier": "ООО «Ио Вулкан»",
+          "amount": 372000,
+          "delivery_date": "needs_review",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Не исправлять молча; допустимо предложить 30.04.2026 с пометкой"
+        },
+        {
+          "contract_no": "STN-707",
+          "supplier": "ООО «Титания Стекло»",
+          "amount": 515000,
+          "delivery_date": "needs_review",
+          "amount_source": null,
+          "delivery_source": null,
+          "proposals": [],
+          "note": "Нельзя превращать в 03.03.2026 (переполнение Date в JS)"
+        }
+      ],
+      "must_not_appear": [
+        "STN-708",
+        "SТN-704 (отдельной строкой, с кириллической Т)"
+      ]
+    }
+  }
+}

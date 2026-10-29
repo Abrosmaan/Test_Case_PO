@@ -10,7 +10,7 @@ export const config = {
   host: '127.0.0.1',
   port: Number(env.API_PORT ?? 3000),
   logLevel: env.LOG_LEVEL ?? 'info',
-  logFile: 'logs/app.jsonl',
+  logFile: env.LOG_FILE ?? 'logs/app.jsonl',
   dbFile: env.DB_FILE ?? 'data/app.db',
 
   /** Default check date (ISO). Overridable from env and from the UI. */
@@ -18,6 +18,8 @@ export const config = {
 
   upload: {
     maxFileBytes: 1024 * 1024,
+    /** Files per upload request. More → a clear 413, the user splits the batch. */
+    maxFiles: 500,
     allowedExtensions: ['.txt'],
   },
 

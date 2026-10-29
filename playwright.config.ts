@@ -29,7 +29,7 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       API_PORT: String(API_PORT), WEB_PORT: String(WEB_PORT), DB_FILE,
-      LLM_PROVIDER: 'none', LOG_LEVEL: 'warn', CHECK_DATE: '2026-03-10',
+      LLM_PROVIDER: 'none', LOG_LEVEL: 'warn', CHECK_DATE: '2026-03-10', LOG_FILE: 'logs/e2e.jsonl',
     },
   },
 });

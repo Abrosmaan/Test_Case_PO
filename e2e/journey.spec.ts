@@ -34,17 +34,19 @@ test('batch upload: bad files are rejected with a reason, the rest are processed
     { name: 'scan.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4') },
     txt('empty.txt', '  \n'),
     { name: 'contract.docx', mimeType: 'application/octet-stream', buffer: Buffer.from('PK\x03\x04') },
+    txt('huge.txt', Buffer.alloc(2 * 1024 * 1024, 0x41)), // used to fail the whole batch with "internal error"
   ]);
   const summary = page.locator('#upload-summary');
-  await expect(summary).toContainText('Загружено 9 файлов');
+  await expect(summary).toContainText('Загружено 10 файлов');
   await expect(summary).toContainText('принято 6');
-  await expect(summary).toContainText('отклонено 3');
+  await expect(summary).toContainText('отклонено 4');
   // Details are open when something was rejected.
   await expect(summary.locator('details')).toHaveAttribute('open', '');
   await expect(summary.locator('li.rejected')).toHaveText([
     'scan.pdf: Формат .pdf не поддерживается: загрузите файл .txt',
     'empty.txt: Файл пустой',
     'contract.docx: Формат .docx не поддерживается: загрузите файл .txt',
+    'huge.txt: Файл больше 1024 КБ',
   ]);
   await expect(page.locator('#contracts tr')).toHaveCount(3);
 

@@ -16,11 +16,25 @@ const IdParam = z.object({ id: z.coerce.number().int().positive() });
 
 export async function buildApp(logger: Logger, db: Db, llm: LlmProvider | null = null) {
   const app = Fastify({ loggerInstance: logger });
-  // Oversized files are read with a small headroom and rejected by ingest with a clear message.
-  await app.register(multipart, { limits: { fileSize: config.upload.maxFileBytes + 1, files: 100 } });
+  // An oversized file is cut at the limit (not thrown — that would fail the whole batch)
+  // and then rejected by ingest with a clear message, like any other bad file.
+  await app.register(multipart, {
+    throwFileSizeLimit: false,
+    limits: { fileSize: config.upload.maxFileBytes + 1, files: config.upload.maxFiles },
+  });
 
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof z.ZodError) return reply.status(400).send({ error: err.issues.map((i) => i.message).join('; ') });
+    // Client-side problems (e.g. a broken multipart body) get their status and a readable text, not "internal error".
+    const { code, statusCode, message } = err as { code?: string; statusCode?: number; message?: string };
+    if (code === 'FST_FILES_LIMIT') {
+      req.log.warn({ err }, 'too many files in one upload');
+      return reply.status(413).send({ error: `За один раз можно загрузить не больше ${config.upload.maxFiles} файлов — разбейте загрузку на части` });
+    }
+    if (statusCode && statusCode < 500) {
+      req.log.warn({ err }, 'bad request');
+      return reply.status(statusCode).send({ error: `Не удалось обработать запрос: ${message ?? ''}` });
+    }
     req.log.error({ err }, 'request failed');
     return reply.status(500).send({ error: 'Внутренняя ошибка' });
   });
@@ -31,8 +45,8 @@ export async function buildApp(logger: Logger, db: Db, llm: LlmProvider | null =
   app.post('/api/upload', async (req) => {
     const files: UploadedFile[] = [];
     for await (const part of req.files()) {
-      const buffer = await part.toBuffer().catch(() => Buffer.alloc(config.upload.maxFileBytes + 1));
-      files.push({ filename: part.filename, buffer });
+      // Truncated at maxFileBytes + 1, so ingest sees it is too large and rejects just this file.
+      files.push({ filename: part.filename, buffer: await part.toBuffer() });
     }
     const batch = processBatch(files, { db, logger });
     // Optional: documents the rules did not recognise get an LLM suggestion (always "needs review").

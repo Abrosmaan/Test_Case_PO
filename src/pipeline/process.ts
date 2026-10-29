@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { Db } from '../db.js';
 import type { Logger } from '../logger.js';
+import { extractors } from '../extractors/index.js';
+import { buildSegments } from '../extractors/segments.js';
 import { classify } from './classify.js';
 import { ingest } from './ingest.js';
 import { segment } from './segment.js';
@@ -73,6 +75,26 @@ function processFile(file: UploadedFile, tracer: Tracer, { db }: Ctx): FileResul
       effective_date = ?, classified_by = 'rules', needs_review = ?, review_reason = ? where id = ?`)
     .run(cls.doc_type, cls.doc_no, cls.contract_no, cls.sign_status, cls.doc_date, cls.signed_date,
       cls.effective_date, cls.needs_review ? 1 : 0, cls.review_reasons.join('; ') || null, documentId);
+
+  const segments = buildSegments(cls.doc_type, paragraphs);
+  const insertFact = db.prepare(`insert into facts (document_id, paragraph_id, field, kind, value, display, quote, start, "end", rule_id, replaces_clause, reason)
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  tracer.time('extract', () => {
+    for (const ex of extractors) {
+      const r = ex.extract(segments);
+      for (const f of r.facts) {
+        insertFact.run(documentId, f.paragraph_id, f.field, 'fact', f.value, f.display, f.quote, f.start, f.end, f.rule_id, f.replaces_clause, null);
+        tracer.record('extract', f.rule_id, `${ex.label}: принято ${f.display}${f.replaces_clause ? ` (новая редакция п. ${f.replaces_clause})` : ''}`, { field: f.field, quote: f.quote });
+      }
+      for (const n of r.noData) {
+        insertFact.run(documentId, n.paragraph_id, n.field, 'no_data', null, null, n.quote, n.start, n.end, n.rule_id, null, n.reason);
+        tracer.record('extract', n.rule_id, `${ex.label}: нет данных`, { field: n.field, reason: n.reason });
+      }
+      for (const x of r.rejected) {
+        tracer.record('extract', x.rule_id, `${ex.label}: отброшено ${x.candidate} — ${x.reason}`, { field: x.field, quote: x.quote });
+      }
+    }
+  });
 
   return { filename: file.filename, status: 'ok', document_id: documentId };
 }

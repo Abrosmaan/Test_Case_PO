@@ -38,6 +38,26 @@ export const config = {
     effective: String.raw`вступает\s+в\s+силу\s+(?:с\s+)?`,
   },
 
+  /** Extractor dictionaries. */
+  extract: {
+    /** «Пункт X.Y договора изложить в следующей редакции: «…»» */
+    replaceClause: String.raw`Пункт\s+(\d+(?:\.\d+)*)\s+договора\s+изложить\s+в\s+(?:следующей|новой)\s+редакции\s*:\s*«(.*)»`,
+    supplier: String.raw`Поставщик\s*:\s*((?:ООО|АО|ПАО|ЗАО|ОАО|ИП)\s*«[^»]+»|[^.;\n]+)`,
+    amount: {
+      money: String.raw`(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)(?:[.,](\d{2}))?\s*(?:\([^)]*\)\s*)?(?:рубл\p{L}*|руб\.|₽)`,
+      trigger: String.raw`общ\p{L}*\s+стоимост\p{L}*`,
+      stopWords: ['аванс', 'лимит', 'бюджет', 'срок оплаты', 'неустойк', 'штраф'],
+    },
+    deliveryDate: {
+      /** «поставить … не позднее DATE» */
+      deadline: String.raw`постав\p{L}*[^.]*?не\s+позднее\s+`,
+      /** «изменить/перенести срок поставки (с DATE) на DATE» */
+      change: String.raw`срок\p{L}*\s+поставки\s+(?:с\s+(?:DATE)\s+)?на\s+`,
+      context: String.raw`постав\p{L}*`,
+      stopWords: ['оплат', 'приемк', 'приёмк'],
+    },
+  },
+
   llm: {
     provider: env.LLM_PROVIDER ?? 'none',
     model: env.LLM_MODEL ?? '',

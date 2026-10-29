@@ -24,7 +24,7 @@ export const config = {
   },
 
   /** Contract number template, e.g. STN-101. Used everywhere a contract number is read from text. */
-  contractNo: String.raw`[A-ZА-ЯЁ]{2,10}-\d+(?:[/-]\d+)*`,
+  contractNo: String.raw`(?<![\p{L}\d])[A-ZА-ЯЁ]{2,10}-\d+(?:[/-]\d+)*(?![\p{L}\d])`,
   /** Date format in documents: dd.mm.yyyy */
   date: String.raw`(\d{2})\.(\d{2})\.(\d{4})`,
 
@@ -50,7 +50,10 @@ export const config = {
     replaceClause: String.raw`Пункт\s+(\d+(?:\.\d+)*)\s+договора\s+изложить\s+в\s+(?:следующей|новой)\s+редакции\s*:\s*«(.*)»`,
     supplier: String.raw`Поставщик\s*:\s*((?:ООО|АО|ПАО|ЗАО|ОАО|ИП)\s*«[^»]+»|[^.;\n]+)`,
     amount: {
-      money: String.raw`(\d{1,3}(?:[ \u00a0]\d{3})+|\d+)(?:[.,](\d{2}))?\s*(?:\([^)]*\)\s*)?(?:рубл\p{L}*|руб\.|₽)`,
+      // Thousands by space, NBSP or dot («1.200.000,00»); never starts in the middle of a number («1 200 00 0»).
+      money: String.raw`(?<!\d[ \u00a0.]?)(\d{1,3}(?:[ \u00a0.]\d{3})+|\d+)(?:[.,](\d{2}))?\s*(?:\([^)]*\)\s*)?(?:рубл\p{L}*|руб\.|₽)`,
+      /** A clause that names a sum in roubles at all: if no amount parses in it, a person must look. */
+      moneyWord: String.raw`рубл|руб\.|₽`,
       trigger: String.raw`общ\p{L}*\s+стоимост\p{L}*`,
       stopWords: ['аванс', 'лимит', 'бюджет', 'срок оплаты', 'неустойк', 'штраф'],
     },

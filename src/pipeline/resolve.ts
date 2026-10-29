@@ -63,6 +63,7 @@ const TYPE_LABEL: Record<string, string> = { contract: 'Договор', amendme
 const REPLACE = new RegExp(config.extract.replaceClause, 'u');
 const TERMINATION = new RegExp(config.extract.termination.trigger, 'iu');
 const BOILERPLATE = new RegExp(config.extract.amendmentBoilerplate, 'iu');
+const CLAUSE_REF = /пункт\p{L}*\s+(\d+(?:\.\d+)+)/giu;
 const FIELD_HINTS = Object.entries(config.extract.fieldHints).map(([f, re]) => [f as FieldName, new RegExp(re, 'iu')] as const);
 
 function docLabel(d: DocRow): string {
@@ -138,12 +139,27 @@ export function resolve(db: Db, checkDate: string): Resolution {
         };
       } else {
         const nd = base.find((x) => x.f.kind === 'no_data');
+        // The value is in the text but broken («1 200 00 0 рублей») — not the same as «нет данных».
+        const unparsed = nd?.f.rule_id.endsWith('.unparsed');
         fields[field] = {
-          value: null, display: 'нет данных', status: 'no_data', status_label: 'нет данных',
-          reason: nd?.f.reason ?? 'значение не найдено в тексте договора',
+          value: null, display: unparsed ? 'требует проверки' : 'нет данных', status: unparsed ? 'needs_review' : 'no_data',
+          status_label: unparsed ? 'требует проверки' : 'нет данных',
+          reason: unparsed ? `значение в тексте не распознано: «${nd!.f.reason}»` : nd?.f.reason ?? 'значение не найдено в тексте договора',
           source: nd ? ref(nd.f, nd.d) : null, chain: [],
         };
       }
+    }
+
+    // A contract not signed by both parties gives no terms in force: its values are only a draft.
+    const unsigned = cDocs.find((d) => d.sign_status !== 'signed_both');
+    if (unsigned) {
+      for (const { field } of extractors) {
+        const cur = fields[field];
+        if (cur.status === 'active' && cur.source) {
+          fields[field] = needsReview(cur, `Договор не подписан обеими сторонами (${unsigned.review_reason ?? 'статус: не подписан'}) — значение проектное`, cur.source);
+        }
+      }
+      review_reasons.push(`${unsigned.filename}: договор не подписан обеими сторонами`);
     }
 
     // Amendments applied in order of effective date; everything else becomes a proposal or a note.
@@ -158,6 +174,8 @@ export function resolve(db: Db, checkDate: string): Resolution {
     applicable.sort((a, b) => (a.effective_date! + a.signed_date).localeCompare(b.effective_date! + b.signed_date) || Number(a.doc_no) - Number(b.doc_no));
 
     let termination: Termination | null = null;
+    /** Which amendment set each field last, to catch two amendments in force on the same day disagreeing. */
+    const setBy = new Map<FieldName, { d: DocRow; display: string }>();
     for (const d of applicable) {
       const dFacts = byDoc.get(d.id) ?? [];
       const label = `изменено ДС №${d.doc_no ?? '?'}`;
@@ -168,8 +186,14 @@ export function resolve(db: Db, checkDate: string): Resolution {
       for (const [field, fs] of byField) {
         const cur = fields[field];
         const distinct = [...new Set(fs.map((f) => f.display!))];
+        const prev = setBy.get(field);
         if (distinct.length > 1) {
           fields[field] = needsReview(cur, `${docLabel(d)} задаёт несколько значений: ${distinct.join(', ')}`, ref(fs[0]!, d));
+        } else if (prev && prev.d.effective_date === d.effective_date && prev.display !== distinct[0]) {
+          // Same effective date, different values: which one wins is a legal question, not «the last file».
+          const why = `${docLabel(prev.d)} и ${docLabel(d)} вступают в силу в один день (${formatDate(d.effective_date!)}) и задают разные значения: ${prev.display} и ${distinct[0]}`;
+          fields[field] = needsReview(cur, why, ref(fs[0]!, d));
+          review_reasons.push(why);
         } else if (cur.status !== 'needs_review') {
           const f = fs[0]!;
           fields[field] = {
@@ -177,6 +201,7 @@ export function resolve(db: Db, checkDate: string): Resolution {
             source: ref(f, d), chain: [...cur.chain, { display: f.display!, label: `${docLabel(d)} (новая редакция п. ${f.replaces_clause})`, source: ref(f, d) }],
           };
         }
+        setBy.set(field, { d, display: distinct[0]! });
         changes.push(field);
       }
 
@@ -203,7 +228,12 @@ export function resolve(db: Db, checkDate: string): Resolution {
           continue;
         }
         if (TERMINATION.test(p.text) || BOILERPLATE.test(p.text)) continue;
-        const hinted = FIELD_HINTS.filter(([, re]) => re.test(p.text)).map(([f]) => f);
+        // Which field it touches: by the clause it names («в пункте 3.1 …») or by its words.
+        const named = [...p.text.matchAll(CLAUSE_REF)].map((m) => m[1]);
+        const hinted = [...new Set([
+          ...extractors.map((e) => e.field).filter((f) => named.includes(fieldClause.get(f) ?? '')),
+          ...FIELD_HINTS.filter(([, re]) => re.test(p.text)).map(([f]) => f),
+        ])];
         const why = `${docLabel(d)} подписано и вступило в силу, но изменение в п. ${p.clause_no} не распознано: «${p.text}»`;
         review_reasons.push(why);
         for (const f of hinted) fields[f] = needsReview(fields[f], why, paraRef(p, d, 'resolve.unrecognised_change'));
@@ -231,6 +261,12 @@ export function resolve(db: Db, checkDate: string): Resolution {
         if (f.kind !== 'fact' || !isField(f.field) || f.value === fields[f.field].value) continue;
         proposals.push({ field: f.field, display: f.display!, reason, source: ref(f, d) });
         proposed++;
+        // A doubtful document (signed amendment without an effective date, «проект» with signatures, unknown type)
+        // may already be in force: the value it would change can no longer be shown as certain.
+        if (d.needs_review && fields[f.field].status !== 'needs_review' && fields[f.field].status !== 'no_data') {
+          fields[f.field] = needsReview(fields[f.field],
+            `${docLabel(d)} (${d.filename}) может менять значение на ${f.display}: ${reason}`, ref(f, d));
+        }
       }
       if (proposed) continue;
       // Nothing to propose: keep it visible as a note. Proposed termination is quoted as such.

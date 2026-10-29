@@ -22,6 +22,7 @@ npm run dev          # API на 127.0.0.1:3000 + UI на http://127.0.0.1:5173
 | `npm run test:e2e` | e2e в браузере (Playwright, Chromium): главный путь пользователя через настоящие UI, сервер и БД (≈5 с). Первый раз: `npx playwright install chromium` |
 | `npm run typecheck` | проверка типов TypeScript |
 | `npm run analyze -- "Test Files" [--date 2026-03-10]` | прогон без UI: таблица, решения и трасса в консоль |
+| `npm run cases` | прогон расширенного набора `Test Cases/` (80 документов) и сверка с `expected.json`: сколько значений совпало, что «молча неверно» (код выхода 1), где прототип осторожнее, чем ожидалось |
 
 Настройки (все необязательные) — в `.env` по образцу `.env.example`: `API_PORT`, `LOG_LEVEL` (`debug` включает подробную трассу и полный текст документов в логах), `CHECK_DATE`, `DB_FILE`.
 

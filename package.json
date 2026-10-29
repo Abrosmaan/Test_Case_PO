@@ -12,7 +12,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "analyze": "tsx src/cli/analyze.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "cases": "tsx src/cli/cases.ts"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.6",

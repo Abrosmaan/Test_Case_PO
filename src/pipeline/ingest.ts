@@ -26,7 +26,8 @@ export function ingest(filename: string, buffer: Buffer): IngestResult {
     text = iconv.decode(buffer, 'win1251');
     encoding = 'cp1251';
   }
-  if (text.includes('\u0000')) {
+  // NUL or other control characters (PNG «\x1a», UTF-16 zero bytes…): a binary file renamed to .txt.
+  if (/[\u0000-\u0008\u000b\u000e-\u001f\u007f]/.test(text)) {
     return { ok: false, rule_id: 'ingest.binary', reason: 'Файл не является текстовым' };
   }
 

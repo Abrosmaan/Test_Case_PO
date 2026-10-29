@@ -21,6 +21,20 @@ export interface Classification {
 
 const C = config.classify;
 const CONTRACT_NO = new RegExp(config.contractNo, 'gu');
+const CONTRACT_TITLE = new RegExp(C.titles.find((t) => t.type === 'contract')!.re, 'u');
+
+/** Cyrillic letters that look exactly like Latin ones. */
+const HOMOGLYPHS: Record<string, string> = { А: 'A', В: 'B', Е: 'E', К: 'K', М: 'M', Н: 'H', О: 'O', Р: 'P', С: 'C', Т: 'T', Х: 'X', У: 'Y' };
+
+/**
+ * «SТN-704» with a Cyrillic Т is visually the same number as «STN-704». Only numbers that mix
+ * Latin and Cyrillic letters are touched: an all-Cyrillic number like «ДП-12» stays as it is.
+ */
+export function normalizeContractNo(raw: string): string {
+  const prefix = /^\p{L}+/u.exec(raw)?.[0] ?? '';
+  if (!/[A-Z]/.test(prefix) || !/[А-ЯЁ]/.test(prefix)) return raw;
+  return [...prefix].map((ch) => HOMOGLYPHS[ch] ?? ch).join('') + raw.slice(prefix.length);
+}
 
 export function classify(paragraphs: Paragraph[]): Classification {
   const r: Classification = {
@@ -45,23 +59,49 @@ export function classify(paragraphs: Paragraph[]): Classification {
 
   // Document number (contract number for contracts, amendment number for amendments/drafts).
   const noMatch = new RegExp(C.docNo, 'u').exec(title.text);
-  const titleContractNos = [...title.text.matchAll(CONTRACT_NO)].map((m) => m[0]);
+  /** Every contract number in a paragraph, as written and normalised. */
+  const numbersIn = (text: string) => [...text.matchAll(CONTRACT_NO)].map((m) => ({ raw: m[0], no: normalizeContractNo(m[0]) }));
+  let contractRaw: string | null = null;
   if (r.doc_type === 'contract') {
-    r.contract_no = titleContractNos[0] ?? noMatch?.[1] ?? null;
+    const found = numbersIn(title.text)[0];
+    if (found) {
+      contractRaw = found.raw;
+      r.contract_no = found.no;
+    } else {
+      // The title has «№ …» but not in the expected format: never guess a number that only looks right.
+      const written = /№\s*(.+?)\s*$/u.exec(title.text)?.[1] ?? null;
+      const spaced = written && /^([A-ZА-ЯЁ]{2,10})[\s_–—]+(\d+)$/u.exec(written);
+      contractRaw = written;
+      if (spaced) {
+        r.contract_no = normalizeContractNo(`${spaced[1]}-${spaced[2]}`);
+        review(`Номер договора записан как «${written}» — приведён к ${r.contract_no}, проверьте`);
+      } else if (written) {
+        r.contract_no = written;
+        review(`Номер договора «${written}» не соответствует шаблону номера — проверьте (например, буква O вместо нуля)`);
+      }
+    }
     r.doc_no = r.contract_no;
+    // Two contract titles in one file: values would mix — a person splits the file.
+    const titles = paragraphs.filter((p) => CONTRACT_TITLE.test(p.text));
+    if (titles.length > 1) review(`В одном файле несколько договоров: ${titles.map((p) => numbersIn(p.text)[0]?.no ?? p.text).join(', ')}`);
   } else if (r.doc_type === 'amendment' || r.doc_type === 'draft') {
     r.doc_no = noMatch?.[1] ?? null;
   }
 
   // Contract reference for non-contracts: all contract numbers in the text must agree.
   if (r.doc_type !== 'contract') {
-    const all = new Set(paragraphs.flatMap((p) => [...p.text.matchAll(CONTRACT_NO)].map((m) => m[0])));
-    if (all.size === 1) r.contract_no = [...all][0]!;
-    else if (all.size > 1) review(`Упомянуто несколько договоров: ${[...all].join(', ')}`);
+    const found = paragraphs.flatMap((p) => numbersIn(p.text));
+    const all = new Set(found.map((x) => x.no));
+    if (all.size === 1) {
+      r.contract_no = [...all][0]!;
+      contractRaw = found[0]!.raw;
+    } else if (all.size > 1) review(`Упомянуто несколько договоров: ${[...all].join(', ')}`);
   }
   if (r.contract_no) {
-    const p = paragraphs.find((x) => x.text.includes(r.contract_no!))!;
-    r.evidence.push({ attr: 'contract_no', rule_id: 'classify.contract_no', line_no: p.line_no, quote: r.contract_no });
+    const p = paragraphs.find((x) => x.text.includes(contractRaw ?? r.contract_no!)) ?? title;
+    r.evidence.push({ attr: 'contract_no', rule_id: 'classify.contract_no', line_no: p.line_no, quote: contractRaw ?? r.contract_no });
+    const mixed = paragraphs.flatMap((x) => numbersIn(x.text)).find((x) => x.raw !== x.no);
+    if (mixed) review(`Номер договора «${mixed.raw}» написан с кириллическими буквами — приведён к ${mixed.no}, проверьте`);
   } else review('Номер договора не найден в тексте');
 
   for (const p of paragraphs.slice(0, 8)) {

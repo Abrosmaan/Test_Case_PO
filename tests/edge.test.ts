@@ -67,6 +67,23 @@ describe('amendment changes the rules do not understand are never applied silent
   });
 });
 
+describe('doubtful amendments flag the contract', () => {
+  it('amendment without a signing status → proposal and contract needs review', () => {
+    const c = findContract(withExtra(T('b.txt', 'ДОПОЛНИТЕЛЬНОЕ СОГЛАШЕНИЕ № 2 К ДОГОВОРУ STN-102\n'
+      + '1. Пункт 3.1 договора изложить в следующей редакции: «Поставщик обязуется поставить комплектующие не позднее 25.03.2026»\n'
+      + '2. Настоящее соглашение вступает в силу 03.03.2026.')), 'STN-102')!;
+    expect(c.fields.delivery_date.display).toBe('20.03.2026');
+    expect(c.proposals.map((p) => p.display)).toContain('25.03.2026');
+    expect(c.review_reasons).toEqual([expect.stringMatching(/Статус подписания не указан/)]);
+  });
+
+  it('explicitly unsigned amendment → proposal only, no review flag', () => {
+    const c = findContract(withExtra(T('a.txt', 'ДОПОЛНИТЕЛЬНОЕ СОГЛАШЕНИЕ № 2 К ДОГОВОРУ STN-102\nСтатус: не подписано.\n'
+      + '1. Пункт 3.1 договора изложить в следующей редакции: «Поставщик обязуется поставить комплектующие не позднее 25.03.2026»')), 'STN-102')!;
+    expect([c.needs_review, c.proposals.map((p) => p.reason)]).toEqual([false, ['письмо — предложение, не согласовано', 'ДС не подписано обеими сторонами']]);
+  });
+});
+
 describe('several values', () => {
   it('staged delivery in one clause → needs review, both dates shown', () => {
     const c = findContract(withExtra(T('s.txt', 'ДОГОВОР ПОСТАВКИ № STN-204\nСтатус: подписан обеими сторонами 01.02.2026.\n1.1. Поставщик: ООО «Эпсилон».\n'

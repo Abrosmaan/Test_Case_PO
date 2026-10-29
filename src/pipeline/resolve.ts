@@ -222,8 +222,9 @@ export function resolve(db: Db, checkDate: string): Resolution {
     const notes: Note[] = [];
     for (const { d, reason } of notApplied) {
       decisions.push({ contract_no: contractNo, document_id: d.id, filename: d.filename, applied: false, reason });
-      // An unrecognised document about this contract may change its terms — a person has to look.
-      if (d.doc_type === 'unknown') review_reasons.push(`${d.filename}: ${reason}`);
+      // An unrecognised or doubtful document about this contract (unknown type, unclear signing status)
+      // may change its terms — a person has to look.
+      if (d.needs_review) review_reasons.push(`${d.filename}: ${reason}`);
       let proposed = 0;
       for (const f of byDoc.get(d.id) ?? []) {
         if (f.kind !== 'fact' || !isField(f.field) || f.value === fields[f.field].value) continue;

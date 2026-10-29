@@ -4,6 +4,7 @@ import type { Logger } from '../logger.js';
 import { extractors } from '../extractors/index.js';
 import { buildSegments } from '../extractors/segments.js';
 import { detectTermination } from '../extractors/termination.js';
+import { findInjection } from '../llm/classify.js';
 import { classify } from './classify.js';
 import { ingest } from './ingest.js';
 import { segment } from './segment.js';
@@ -77,7 +78,16 @@ function processFile(file: UploadedFile, tracer: Tracer, { db }: Ctx): FileResul
     .run(cls.doc_type, cls.doc_no, cls.contract_no, cls.sign_status, cls.doc_date, cls.signed_date,
       cls.effective_date, cls.needs_review ? 1 : 0, cls.review_reasons.join('; ') || null, documentId);
 
-  const segments = buildSegments(cls.doc_type, paragraphs);
+  // A paragraph that talks to «the AI system» is not a contract term: nothing is extracted from it,
+  // and the document is flagged — otherwise «итоговая стоимость — 99 000 000» would compete with the real clause.
+  const segments = buildSegments(cls.doc_type, paragraphs).filter((seg) => {
+    const injection = findInjection(seg.text);
+    if (!injection) return true;
+    tracer.record('extract', 'extract.injection_suspected', `Абзац похож на инструкцию для автоматической системы — значения из него не извлекаются: «${injection}»`, { quote: seg.text }, 'warn');
+    db.prepare("update documents set needs_review = 1, review_reason = trim(coalesce(review_reason || '; ', '') || ?) where id = ?")
+      .run(`в тексте есть инструкция для автоматической системы («${injection}») — значения из этого абзаца не извлекаются`, documentId);
+    return false;
+  });
   const insertFact = db.prepare(`insert into facts (document_id, paragraph_id, field, kind, value, display, quote, start, "end", rule_id, replaces_clause, reason)
       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   tracer.time('extract', () => {

@@ -6,6 +6,7 @@ const C = config.extract.amount;
 const MONEY = new RegExp(C.money, 'gu');
 const TRIGGER = new RegExp(C.trigger, 'iu');
 const MONEY_WORD = new RegExp(C.moneyWord, 'iu');
+const FOREIGN = new RegExp(C.foreignCurrency, 'u');
 
 export const totalAmount: Extractor = {
   field: 'total_amount',
@@ -33,8 +34,9 @@ export const totalAmount: Extractor = {
       if (trigger && !stop && !out.facts.some((f) => f.start === seg.start)) {
         // «Общая стоимость … рублей» but no amount parsed («1 200 00 0»): the number is there, just broken → review.
         // No roubles mentioned at all («определяется спецификацией») → honest «нет данных».
-        const unparsed = MONEY_WORD.test(seg.text);
-        out.noData.push(noData('total_amount', seg, seg.text, unparsed ? 'amount.unparsed' : 'amount.trigger_without_value'));
+        // A sum in dollars or euros is not «нет данных» either: it exists, just not in roubles → review.
+        const rule = MONEY_WORD.test(seg.text) ? 'amount.unparsed' : FOREIGN.test(seg.text) ? 'amount.foreign_currency.unparsed' : 'amount.trigger_without_value';
+        out.noData.push(noData('total_amount', seg, seg.text, rule));
       }
     }
     return out;

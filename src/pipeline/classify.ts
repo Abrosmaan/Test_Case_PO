@@ -48,7 +48,7 @@ export function classify(paragraphs: Paragraph[]): Classification {
 
   // Type — by title only.
   for (const t of C.titles) {
-    const m = new RegExp(t.re, 'u').exec(title.text);
+    const m = new RegExp(t.re, 'iu').exec(title.text);
     if (m) {
       r.doc_type = t.type as DocType;
       r.evidence.push({ attr: 'doc_type', rule_id: t.rule_id, line_no: title.line_no, quote: m[0] });
@@ -71,8 +71,12 @@ export function classify(paragraphs: Paragraph[]): Classification {
       // The title has «№ …» but not in the expected format: never guess a number that only looks right.
       const written = /№\s*(.+?)\s*$/u.exec(title.text)?.[1] ?? null;
       const spaced = written && /^([A-ZА-ЯЁ]{2,10})[\s_–—]+(\d+)$/u.exec(written);
+      const upper = written && numbersIn(written.toUpperCase())[0];
       contractRaw = written;
-      if (spaced) {
+      if (upper && upper.raw === written.toUpperCase()) {
+        r.contract_no = upper.no;
+        review(`Номер договора записан строчными («${written}») — приведён к ${r.contract_no}, проверьте`);
+      } else if (spaced) {
         r.contract_no = normalizeContractNo(`${spaced[1]}-${spaced[2]}`);
         review(`Номер договора записан как «${written}» — приведён к ${r.contract_no}, проверьте`);
       } else if (written) {

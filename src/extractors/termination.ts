@@ -1,5 +1,5 @@
 import { config } from '../config.js';
-import { DATE_SRC, formatDate, toIsoDate } from '../pipeline/text.js';
+import { DATE_SRC, formatDate, parseDate } from '../pipeline/text.js';
 import type { Fact, Segment } from './types.js';
 import { fact } from './util.js';
 
@@ -16,7 +16,7 @@ export function detectTermination(segments: Segment[]): Fact[] {
   for (const seg of segments) {
     if (!TRIGGER.test(seg.text)) continue;
     const m = DATED.exec(seg.text);
-    const iso = m ? toIsoDate(m[2]!, m[3]!, m[4]!) : null;
+    const iso = m ? parseDate(m[2]!) : null;
     out.push(fact('termination', seg, iso ?? '', iso ? `расторжение с ${formatDate(iso)}` : 'расторжение', iso ? 'termination.dated' : 'termination.undated'));
   }
   return out;

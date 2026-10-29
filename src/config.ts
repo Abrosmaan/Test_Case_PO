@@ -25,21 +25,25 @@ export const config = {
 
   /** Contract number template, e.g. STN-101. Used everywhere a contract number is read from text. */
   contractNo: String.raw`(?<![\p{L}\d])[A-ZА-ЯЁ]{2,10}-\d+(?:[/-]\d+)*(?![\p{L}\d])`,
-  /** Date format in documents: dd.mm.yyyy */
-  date: String.raw`(\d{2})\.(\d{2})\.(\d{4})`,
+  /**
+   * Dates in documents, as ONE capturing group: 15.04.2026, 30.04.26, 2026-05-20, «15 апреля 2026 г.», «"28" марта 2026 года».
+   * Parsed by parseDate() in src/pipeline/text.ts; an impossible date (31.02.2026) parses to null.
+   */
+  date: String.raw`((?:[«"“]?\d{1,2}[»"”]?\s+(?:январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр)\p{L}*\s+\d{4}(?:\s*(?:года|г\.?))?)|\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2})(?![\d\p{L}]))`,
 
   /** Classifier dictionaries. Order matters: first match wins. */
   classify: {
     titles: [
       { rule_id: 'classify.title.draft', type: 'draft', re: String.raw`^ПРОЕКТ\s+ДОПОЛНИТЕЛЬНОГО\s+СОГЛАШЕНИЯ` },
       { rule_id: 'classify.title.amendment', type: 'amendment', re: String.raw`^ДОПОЛНИТЕЛЬНОЕ\s+СОГЛАШЕНИЕ` },
-      { rule_id: 'classify.title.contract', type: 'contract', re: String.raw`^ДОГОВОР(?!\p{L})` },
+      // Typo-tolerant: «ДОГОВР ПОСТАВКИ», «договор поставки» (titles are matched case-insensitively).
+      { rule_id: 'classify.title.contract', type: 'contract', re: String.raw`^(?:ДОГОВОР(?!\p{L})|ДОГ[ОА]?В[ОА]?Р\s+ПОСТАВК)` },
       { rule_id: 'classify.title.letter', type: 'letter', re: String.raw`^ПИСЬМО(?!\p{L})` },
     ],
     docNo: String.raw`№\s*(\S+)`,
     docDate: String.raw`^Дата(?:\s+проекта)?\s*:\s*`,
     statusLine: String.raw`^Статус\s*:`,
-    signedBoth: String.raw`подписан[оа]?\s+обеими\s+сторонами\s+`,
+    signedBoth: String.raw`подписан[оа]?\s+об[еоа]ими\s+сторон\p{L}*\s+`, // «обоими» — частая опечатка
     unsigned: String.raw`не\s+подписан|(?<!\p{L})проект(?!\p{L})`,
     effective: String.raw`вступает\s+в\s+силу\s+(?:с\s+)?`,
   },
@@ -54,17 +58,23 @@ export const config = {
       money: String.raw`(?<!\d[ \u00a0.]?)(\d{1,3}(?:[ \u00a0.]\d{3})+|\d+)(?:[.,](\d{2}))?\s*(?:\([^)]*\)\s*)?(?:рубл\p{L}*|руб\.|₽)`,
       /** A clause that names a sum in roubles at all: if no amount parses in it, a person must look. */
       moneyWord: String.raw`рубл|руб\.|₽`,
-      trigger: String.raw`общ\p{L}*\s+стоимост\p{L}*`,
-      stopWords: ['аванс', 'лимит', 'бюджет', 'срок оплаты', 'неустойк', 'штраф'],
+      /** A sum in another currency: never shown as roubles, a person decides. */
+      foreignCurrency: String.raw`доллар|евро(?!\p{L})|юан|USD|EUR|CNY|\$|€`,
+      // «Общая стоимость» (also «Обшая»), «Цена договора», «Стоимость договора».
+      trigger: String.raw`об[щш]\p{L}*\s+стоимост\p{L}*|цен\p{L}*\s+(?:настоящего\s+)?договор|стоимост\p{L}*\s+(?:настоящего\s+)?договор`,
+      // «Ориентировочная/предварительная стоимость» is not the agreed total.
+      stopWords: ['аванс', 'лимит', 'бюджет', 'срок оплаты', 'неустойк', 'штраф', 'ориентировоч', 'предварительн'],
     },
     deliveryDate: {
       /** «поставить … не позднее DATE» */
-      deadline: String.raw`постав\p{L}*[^.]*?не\s+позднее\s+`,
+      deadline: String.raw`постав\p{L}*[^.]*?не\s+позд\p{L}{2,4}\s+`, // «не позднее», опечатка «не позденее»
+      /** A deadline is there but is not a usable date: «в течение 45 дней», «30.04.2O26», «31.02.2026» → review. */
+      unparsed: String.raw`не\s+позд\p{L}{2,4}\s+\S|в\s+течение\s+\d+|до\s+\d{1,2}[./]`,
       /** «изменить/перенести срок поставки (с DATE) на DATE» */
       change: String.raw`срок\p{L}*\s+поставки\s+(?:с\s+(?:DATE)\s+)?на\s+`,
       context: String.raw`постав\p{L}*`,
       /** Any further «не позднее DATE» in a clause that already set a delivery deadline (staged delivery). */
-      extraDeadline: String.raw`не\s+позднее\s+`,
+      extraDeadline: String.raw`не\s+позд\p{L}{2,4}\s+`,
       stopWords: ['оплат', 'приемк', 'приёмк'],
     },
     /** «Стороны договорились расторгнуть договор (с DATE)» */
@@ -127,7 +137,7 @@ export const config = {
       String.raw`system\s*prompt|you\s+are\s+(?:an?\s+)?(?:ai|assistant|language\s+model)`,
       String.raw`"?(?:doc_type|contract_no)"?\s*:`,
       // Steering the classification itself: business documents never talk about how to classify them.
-      String.raw`классифицир\p{L}*|для\s+автоматическ\p{L}*\s+обработк\p{L}*`,
+      String.raw`классифицир\p{L}*|для\s+автоматическ\p{L}*\s+(?:обработк|систем)\p{L}*|систем\p{L}*\s+ИИ(?!\p{L})`,
     ],
   },
 } as const;

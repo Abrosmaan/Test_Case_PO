@@ -1,16 +1,17 @@
 import { config } from '../config.js';
-import { DATE_SRC, formatDate, toIsoDate } from '../pipeline/text.js';
+import { DATE_NC, DATE_SRC, formatDate, parseDate } from '../pipeline/text.js';
 import type { ExtractResult, Extractor } from './types.js';
-import { fact, stopWordIn } from './util.js';
+import { fact, noData, stopWordIn } from './util.js';
 
 const C = config.extract.deliveryDate;
 const DATE = new RegExp(DATE_SRC, 'gu');
 const RULES = [
   { rule_id: 'delivery.deadline', re: new RegExp(`(${C.deadline})${DATE_SRC}`, 'giu') },
-  { rule_id: 'delivery.change', re: new RegExp(`(${C.change.replace('DATE', DATE_SRC.replace(/\(/g, '(?:'))})${DATE_SRC}`, 'giu') },
+  { rule_id: 'delivery.change', re: new RegExp(`(${C.change.replace('DATE', DATE_NC)})${DATE_SRC}`, 'giu') },
 ];
 const CONTEXT = new RegExp(C.context, 'iu');
 const EXTRA = new RegExp(`(${C.extraDeadline})${DATE_SRC}`, 'giu');
+const UNPARSED = new RegExp(C.unparsed, 'iu');
 
 export const deliveryDate: Extractor = {
   field: 'delivery_date',
@@ -25,7 +26,7 @@ export const deliveryDate: Extractor = {
       if (!stop) {
         for (const { rule_id, re } of RULES) {
           for (const m of seg.text.matchAll(re)) {
-            const iso = toIsoDate(m[2]!, m[3]!, m[4]!);
+            const iso = parseDate(m[2]!);
             if (!iso) continue;
             accepted.add(m.index! + m[1]!.length);
             out.facts.push(fact('delivery_date', seg, iso, formatDate(iso), rule_id));
@@ -36,12 +37,16 @@ export const deliveryDate: Extractor = {
         if (accepted.size > 0) {
           for (const m of seg.text.matchAll(EXTRA)) {
             const at = m.index! + m[1]!.length;
-            const iso = toIsoDate(m[2]!, m[3]!, m[4]!);
+            const iso = parseDate(m[2]!);
             if (!iso || accepted.has(at)) continue;
             accepted.add(at);
             out.facts.push(fact('delivery_date', seg, iso, formatDate(iso), 'delivery.extra_deadline'));
           }
         }
+      }
+      // A deadline without a usable date («в течение 45 дней», «30.04.2O26», «31.02.2026»): not «нет данных» — review.
+      if (!stop && accepted.size === 0 && UNPARSED.test(seg.text)) {
+        out.noData.push(noData('delivery_date', seg, seg.text, 'delivery.unparsed'));
       }
       for (const m of seg.text.matchAll(DATE)) {
         if (accepted.has(m.index!)) continue;
